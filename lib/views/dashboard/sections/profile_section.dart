@@ -206,13 +206,8 @@ class _ProfileSectionState extends State<ProfileSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-      ),
-      body: const Center(
-        child: Text('Profile Section'),
-      ),
+    return const Center(
+      child: Text('Profile Section'),
     );
   }
 }

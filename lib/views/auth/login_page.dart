@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../views/auth/register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -257,30 +258,24 @@ class _LoginPageState extends State<LoginPage>
                           ),
                           const SizedBox(height: AppTheme.defaultSpacing),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _socialLoginButton(
-                                  '', Icons.g_mobiledata_rounded),
-                              _socialLoginButton('', Icons.facebook),
-                              _socialLoginButton('', Icons.apple),
-                            ],
-                          ),
-                          const SizedBox(height: AppTheme.defaultSpacing),
-                          Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
-                                'Don\'t have an account?',
+                                'Sign Up',
                                 style: AppTheme.subheaderStyle,
                               ),
-                              TextButton(
+                              IconButton(
+                                icon: const Icon(Icons.person_add,
+                                    color: AppTheme.primaryBlue),
+                                tooltip: 'Sign Up',
                                 onPressed: () {
-                                  context.go('/register');
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const RegisterPage(),
+                                    ),
+                                  );
                                 },
-                                child: const Text(
-                                  'Sign Up',
-                                  style: AppTheme.buttonTextStyle,
-                                ),
                               ),
                             ],
                           ),

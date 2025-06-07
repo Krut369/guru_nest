@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!-- Base href for proper routing in Flutter web apps -->
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
   <base href="$FLUTTER_BASE_HREF">
-  <script>
-    // Fallback for local development
-    if (window.location.pathname === "/") {
-      document.querySelector('base').setAttribute('href', '/');
-    }
-  </script>
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -36,9 +42,13 @@
 
   <!-- Flutter initialization JS -->
   <script>
-    const serviceWorkerVersion = '{{flutter_service_worker_version}}';
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = null;
   </script>
   <script src="flutter.js" defer></script>
+
+  <!-- Screenshot Security Script -->
+  <script src="screenshot_security.js"></script>
 
   <!-- Optional styling for loading screen -->
   <style>
@@ -78,7 +88,7 @@
     };
 
     window.addEventListener('load', function(ev) {
-      _flutter.loader.load({
+      _flutter.loader.loadEntrypoint({
         serviceWorker: {
           serviceWorkerVersion: serviceWorkerVersion,
         },

@@ -1,27 +1,22 @@
 class Quiz {
   final String id;
-  final String courseId;
+  final String? courseId;
   final String title;
   final String? description;
-  final DateTime? createdAt;
 
   Quiz({
     required this.id,
-    required this.courseId,
+    this.courseId,
     required this.title,
     this.description,
-    this.createdAt,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
     return Quiz(
-      id: json['id'],
-      courseId: json['course_id'],
-      title: json['title'],
+      id: json['id']?.toString() ?? '',
+      courseId: json['course_id']?.toString(),
+      title: json['title'] ?? '',
       description: json['description'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : null,
     );
   }
 
@@ -31,7 +26,6 @@ class Quiz {
       'course_id': courseId,
       'title': title,
       'description': description,
-      'created_at': createdAt?.toIso8601String(),
     };
   }
 }
@@ -68,6 +62,38 @@ class QuizResult {
       'student_id': studentId,
       'score': score,
       'taken_at': takenAt.toIso8601String(),
+    };
+  }
+}
+
+class GeneratedQuizQuestion {
+  final String question;
+  final List<String> options;
+  final int correctAnswer;
+  final String explanation;
+
+  GeneratedQuizQuestion({
+    required this.question,
+    required this.options,
+    required this.correctAnswer,
+    required this.explanation,
+  });
+
+  factory GeneratedQuizQuestion.fromJson(Map<String, dynamic> json) {
+    return GeneratedQuizQuestion(
+      question: json['question'] ?? '',
+      options: List<String>.from(json['options'] ?? []),
+      correctAnswer: json['correctAnswer'] ?? 0,
+      explanation: json['explanation'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'question': question,
+      'options': options,
+      'correctAnswer': correctAnswer,
+      'explanation': explanation,
     };
   }
 }

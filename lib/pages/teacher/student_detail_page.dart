@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../../core/theme/app_theme.dart';
+import '../../views/dashboard/sections/analytics_section.dart';
 import '../../widgets/custom_app_bar.dart';
 
 class StudentDetailPage extends StatefulWidget {
@@ -71,7 +72,17 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    AppTheme.primaryBlue.withOpacity(0.03),
+                    AppTheme.primaryBlue.withOpacity(0.05),
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.1),
@@ -135,6 +146,32 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.analytics_outlined),
+                      label: const Text('View Analytics'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AnalyticsFullScreenPage(
+                              studentId:
+                                  widget.student['id'], // Pass the student ID
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -154,23 +191,48 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
               Center(child: Text('Error: $_error'))
             else if (_enrolledCourses.isEmpty)
               Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.school,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No enrolled courses',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey[600],
+                child: Card(
+                  elevation: 2,
+                  color: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white,
+                          AppTheme.primaryBlue.withOpacity(0.03),
+                          AppTheme.primaryBlue.withOpacity(0.05),
+                        ],
+                        stops: const [0.0, 0.6, 1.0],
                       ),
                     ),
-                  ],
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 32, horizontal: 24),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.school,
+                          size: 64,
+                          color: Colors.white,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'No enrolled courses',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               )
             else
@@ -188,54 +250,70 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: course['thumbnail_url'] != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                course['thumbnail_url'],
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.school),
-                                  );
-                                },
-                              ),
-                            )
-                          : Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.school),
-                            ),
-                      title: Text(
-                        course['title'] ?? 'Untitled Course',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                    color: Colors.transparent,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white,
+                            AppTheme.primaryBlue.withOpacity(0.03),
+                            AppTheme.primaryBlue.withOpacity(0.05),
+                          ],
+                          stops: const [0.0, 0.6, 1.0],
                         ),
                       ),
-                      subtitle: Text(
-                        course['description'] ?? 'No description available',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Text(
-                        'Enrolled: ${_formatDate(enrollment['enrolled_at'])}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
+                        leading: course['thumbnail_url'] != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  course['thumbnail_url'],
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(Icons.school),
+                                    );
+                                  },
+                                ),
+                              )
+                            : Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.school),
+                              ),
+                        title: Text(
+                          course['title'] ?? 'Untitled Course',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          course['description'] ?? 'No description available',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Text(
+                          'Enrolled: ${_formatDate(enrollment['enrolled_at'])}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),

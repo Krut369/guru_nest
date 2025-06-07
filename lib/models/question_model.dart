@@ -15,10 +15,10 @@ class Question {
 
   factory Question.fromJson(Map<String, dynamic> json) {
     return Question(
-      id: json['id'],
-      quizId: json['quiz_id'],
-      questionText: json['question_text'],
-      questionType: json['question_type'],
+      id: json['id']?.toString() ?? '',
+      quizId: json['quiz_id']?.toString() ?? '',
+      questionText: json['question_text']?.toString() ?? '',
+      questionType: json['question_type']?.toString(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,

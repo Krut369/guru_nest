@@ -120,98 +120,92 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     final currentUser =
         AuthService().currentUser; // Get the current user for comparison
 
-    return Scaffold(
-      appBar: AppBar(
-        title:
-            Text('Conversation: ${widget.conversationId}'), // Placeholder title
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text('Error: $_error'))
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(AppTheme.defaultPadding),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _messages[index];
-                          final isSender =
-                              message['sender_id'] == currentUser?.id;
-
-                          return Align(
-                            alignment: isSender
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              margin: const EdgeInsets.symmetric(
-                                  vertical: 4, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: isSender
-                                    ? AppTheme.primaryBlue
-                                    : AppTheme.textGrey.withOpacity(0.2),
-                                borderRadius: isSender
-                                    ? const BorderRadius.only(
-                                        topLeft: Radius.circular(12),
-                                        bottomLeft: Radius.circular(12),
-                                        bottomRight: Radius.circular(12),
-                                      )
-                                    : const BorderRadius.only(
-                                        topRight: Radius.circular(12),
-                                        bottomLeft: Radius.circular(12),
-                                        bottomRight: Radius.circular(12),
-                                      ),
-                              ),
-                              child: Text(
-                                message['content'] as String,
-                                style: TextStyle(
-                                  color: isSender
-                                      ? AppTheme.backgroundWhite
-                                      : AppTheme.textDark,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    Padding(
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+            ? Center(child: Text('Error: $_error'))
+            : Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
                       padding: const EdgeInsets.all(AppTheme.defaultPadding),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              decoration: InputDecoration(
-                                hintText: 'Enter message',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                  borderSide: BorderSide.none,
-                                ),
-                                filled: true,
-                                fillColor: AppTheme.textGrey.withOpacity(0.1),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final message = _messages[index];
+                        final isSender =
+                            message['sender_id'] == currentUser?.id;
+
+                        return Align(
+                          alignment: isSender
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 4, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: isSender
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.textGrey.withOpacity(0.2),
+                              borderRadius: isSender
+                                  ? const BorderRadius.only(
+                                      topLeft: Radius.circular(12),
+                                      bottomLeft: Radius.circular(12),
+                                      bottomRight: Radius.circular(12),
+                                    )
+                                  : const BorderRadius.only(
+                                      topRight: Radius.circular(12),
+                                      bottomLeft: Radius.circular(12),
+                                      bottomRight: Radius.circular(12),
+                                    ),
+                            ),
+                            child: Text(
+                              message['content'] as String,
+                              style: TextStyle(
+                                color: isSender
+                                    ? AppTheme.backgroundWhite
+                                    : AppTheme.textDark,
                               ),
-                              onSubmitted: (_) =>
-                                  _sendMessage(), // Send on enter key
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          FloatingActionButton.small(
-                            onPressed: _sendMessage,
-                            backgroundColor: AppTheme.primaryBlue,
-                            child: const Icon(Icons.send,
-                                color: AppTheme.backgroundWhite),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  ],
-                ),
-    );
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(AppTheme.defaultPadding),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _messageController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter message',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: AppTheme.textGrey.withOpacity(0.1),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                            ),
+                            onSubmitted: (_) =>
+                                _sendMessage(), // Send on enter key
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FloatingActionButton.small(
+                          onPressed: _sendMessage,
+                          backgroundColor: AppTheme.primaryBlue,
+                          child: const Icon(Icons.send,
+                              color: AppTheme.backgroundWhite),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
   }
 }

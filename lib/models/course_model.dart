@@ -11,15 +11,16 @@ class Course with _$Course {
     required String id,
     required String title,
     required String description,
-    @JsonKey(name: 'image_url') String? imageUrl,
-    @JsonKey(name: 'category_id') String? categoryId,
-    @JsonKey(name: 'teacher_id') String? teacherId,
+    @JsonKey(name: 'image_url') required String? imageUrl,
+    @JsonKey(name: 'category_id') required String? categoryId,
+    @JsonKey(name: 'teacher_id') required String? teacherId,
     @JsonKey(name: 'is_premium') @Default(false) bool isPremium,
     @JsonKey(fromJson: _priceFromJson) @Default(0.0) double price,
     @JsonKey(fromJson: _ratingFromJson) @Default(0.0) double rating,
     @JsonKey(fromJson: _enrollmentsFromJson) @Default(0) int enrollments,
     @JsonKey(name: 'created_at') required DateTime createdAt,
-    @JsonKey(fromJson: _userFromJson, toJson: _userToJson) User? teacher,
+    @JsonKey(fromJson: _userFromJson, toJson: _userToJson)
+    required User? teacher,
   }) = _Course;
 
   factory Course.fromJson(Map<String, dynamic> json) => _$CourseFromJson(json);
@@ -43,6 +44,13 @@ int _enrollmentsFromJson(dynamic value) {
   if (value == null) return 0;
   if (value is String) return int.parse(value);
   if (value is num) return value.toInt();
+  if (value is List && value.isNotEmpty) {
+    // Handle the case where enrollments comes as [{'count': 5}]
+    final firstItem = value.first;
+    if (firstItem is Map && firstItem.containsKey('count')) {
+      return firstItem['count'] as int? ?? 0;
+    }
+  }
   return 0;
 }
 

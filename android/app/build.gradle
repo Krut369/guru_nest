@@ -7,6 +7,8 @@ plugins {
 
 android {
     namespace = "com.example.guru_nest"
+//    namespace 'com.upi.india'  // ✅ Add this line
+
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

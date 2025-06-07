@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/theme/app_theme.dart';
+
 class AddCategoryScreen extends StatefulWidget {
   final Map<String, dynamic>? category;
 
@@ -171,90 +173,120 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.category != null ? 'Edit Category' : 'Add Category'),
+        title: Text(widget.category != null ? 'Edit Category' : 'Add Category',
+            style: const TextStyle(color: Colors.white)),
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        backgroundColor: AppTheme.primaryBlue,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Category Icon
-              Center(
-                child: GestureDetector(
-                  onTap: _pickIcon,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12),
-                      image: _imageBytes != null
-                          ? DecorationImage(
-                              image: MemoryImage(_imageBytes!),
-                              fit: BoxFit.cover,
-                            )
-                          : _currentIconUrl != null
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            color: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    AppTheme.primaryBlue.withOpacity(0.03),
+                    AppTheme.primaryBlue.withOpacity(0.05),
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
+                ),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickIcon,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                          image: _imageBytes != null
                               ? DecorationImage(
-                                  image: NetworkImage(_currentIconUrl!),
+                                  image: MemoryImage(_imageBytes!),
                                   fit: BoxFit.cover,
                                 )
-                              : null,
-                    ),
-                    child: _iconFile == null && _currentIconUrl == null
-                        ? const Icon(
-                            Icons.add_photo_alternate,
-                            size: 40,
-                            color: Colors.grey,
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Category Name
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Category Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a category name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : Text(
-                          widget.category != null
-                              ? 'Update Category'
-                              : 'Add Category',
-                          style: const TextStyle(fontSize: 16),
+                              : _currentIconUrl != null
+                                  ? DecorationImage(
+                                      image: NetworkImage(_currentIconUrl!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                         ),
-                ),
+                        child: _iconFile == null && _currentIconUrl == null
+                            ? const Icon(
+                                Icons.add_photo_alternate,
+                                size: 40,
+                                color: Colors.grey,
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Category Details',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryBlueDark,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Category Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a category name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              widget.category != null
+                                  ? 'Update Category'
+                                  : 'Add Category',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

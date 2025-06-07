@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // API config
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "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";
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "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";
 const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 serve(async (req) => {

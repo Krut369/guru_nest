@@ -31,6 +31,8 @@ mixin _$User {
   UserRole get role => throw _privateConstructorUsedError;
   @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'bio')
+  String? get bio => throw _privateConstructorUsedError;
 
   /// Serializes this User to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -53,7 +55,8 @@ abstract class $UserCopyWith<$Res> {
       String? password,
       @JsonKey(name: 'avatar_url') String? avatarUrl,
       @JsonKey(name: 'role') UserRole role,
-      @JsonKey(name: 'created_at') DateTime createdAt});
+      @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'bio') String? bio});
 }
 
 /// @nodoc
@@ -78,6 +81,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? avatarUrl = freezed,
     Object? role = null,
     Object? createdAt = null,
+    Object? bio = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -108,6 +112,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      bio: freezed == bio
+          ? _value.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -126,7 +134,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       String? password,
       @JsonKey(name: 'avatar_url') String? avatarUrl,
       @JsonKey(name: 'role') UserRole role,
-      @JsonKey(name: 'created_at') DateTime createdAt});
+      @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'bio') String? bio});
 }
 
 /// @nodoc
@@ -148,6 +157,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? avatarUrl = freezed,
     Object? role = null,
     Object? createdAt = null,
+    Object? bio = freezed,
   }) {
     return _then(_$UserImpl(
       id: null == id
@@ -178,6 +188,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      bio: freezed == bio
+          ? _value.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -190,9 +204,10 @@ class _$UserImpl implements _User {
       @JsonKey(name: 'full_name') required this.fullName,
       required this.email,
       this.password,
-      @JsonKey(name: 'avatar_url') this.avatarUrl,
+      @JsonKey(name: 'avatar_url') required this.avatarUrl,
       @JsonKey(name: 'role') required this.role,
-      @JsonKey(name: 'created_at') required this.createdAt});
+      @JsonKey(name: 'created_at') required this.createdAt,
+      @JsonKey(name: 'bio') this.bio});
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -215,10 +230,13 @@ class _$UserImpl implements _User {
   @override
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
+  @override
+  @JsonKey(name: 'bio')
+  final String? bio;
 
   @override
   String toString() {
-    return 'User(id: $id, fullName: $fullName, email: $email, password: $password, avatarUrl: $avatarUrl, role: $role, createdAt: $createdAt)';
+    return 'User(id: $id, fullName: $fullName, email: $email, password: $password, avatarUrl: $avatarUrl, role: $role, createdAt: $createdAt, bio: $bio)';
   }
 
   @override
@@ -236,13 +254,14 @@ class _$UserImpl implements _User {
                 other.avatarUrl == avatarUrl) &&
             (identical(other.role, role) || other.role == role) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.bio, bio) || other.bio == bio));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, id, fullName, email, password, avatarUrl, role, createdAt);
+  int get hashCode => Object.hash(runtimeType, id, fullName, email, password,
+      avatarUrl, role, createdAt, bio);
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.
@@ -262,14 +281,14 @@ class _$UserImpl implements _User {
 
 abstract class _User implements User {
   const factory _User(
-          {required final String id,
-          @JsonKey(name: 'full_name') required final String fullName,
-          required final String email,
-          final String? password,
-          @JsonKey(name: 'avatar_url') final String? avatarUrl,
-          @JsonKey(name: 'role') required final UserRole role,
-          @JsonKey(name: 'created_at') required final DateTime createdAt}) =
-      _$UserImpl;
+      {required final String id,
+      @JsonKey(name: 'full_name') required final String fullName,
+      required final String email,
+      final String? password,
+      @JsonKey(name: 'avatar_url') required final String? avatarUrl,
+      @JsonKey(name: 'role') required final UserRole role,
+      @JsonKey(name: 'created_at') required final DateTime createdAt,
+      @JsonKey(name: 'bio') final String? bio}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -291,6 +310,9 @@ abstract class _User implements User {
   @override
   @JsonKey(name: 'created_at')
   DateTime get createdAt;
+  @override
+  @JsonKey(name: 'bio')
+  String? get bio;
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.

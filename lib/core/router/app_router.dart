@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 
+import '../../pages/chat/chat_detail_page.dart';
 import '../../pages/teacher/add_material_page.dart';
+import '../../pages/teacher/teacher_chat_page.dart';
 import '../../screens/teacher/lessons_screen.dart';
 import '../../screens/teacher/quiz_management_screen.dart';
 import '../../views/dashboard/dashboard_page.dart';
@@ -64,7 +66,16 @@ final GoRouter appRouter = GoRouter(
         ),
         GoRoute(
           path: 'chat',
-          builder: (context, state) => const DashboardPage(),
+          builder: (context, state) => const TeacherChatPage(),
+          routes: [
+            GoRoute(
+              path: ':conversationId',
+              builder: (context, state) {
+                final conversationId = state.pathParameters['conversationId']!;
+                return ChatDetailPage(conversationId: conversationId);
+              },
+            ),
+          ],
         ),
         GoRoute(
           path: 'lessons',

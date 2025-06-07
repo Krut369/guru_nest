@@ -26,7 +26,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
   bool _isLoading = true;
   String? _error;
   Lesson? _selectedLesson;
-  bool _isGenerating = false;
 
   // Text controllers for material details
   final _titleController = TextEditingController();
@@ -282,77 +281,6 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
     }
   }
 
-  Future<void> _generateAIMaterial() async {
-    if (_titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a material title first'),
-          backgroundColor: AppTheme.errorRed,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isGenerating = true;
-      _error = null;
-    });
-
-    try {
-      // Get the course title
-      final courseData = await _supabase
-          .from('courses')
-          .select('title')
-          .eq('id', widget.courseId)
-          .single();
-
-      final courseTitle = courseData['title'] as String;
-
-      // Call the AI function to generate material
-      final response = await _supabase.functions.invoke(
-        'generate-material',
-        body: {
-          'course_title': courseTitle,
-          'material_title': _titleController.text,
-          'lesson_title': _selectedLesson?.title,
-        },
-      );
-
-      if (response.status != 200) {
-        throw Exception('Failed to generate material: ${response.data}');
-      }
-
-      final generatedContent = response.data['content'] as String;
-
-      setState(() {
-        _isGenerating = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Material generated successfully'),
-            backgroundColor: AppTheme.successGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isGenerating = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error generating material: $e'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    }
-  }
-
   String _getFileType(String? extension) {
     if (extension == null) return 'document';
 
@@ -389,364 +317,375 @@ class _AddMaterialScreenState extends State<AddMaterialScreen> {
               ? Center(child: Text('Error: $_error'))
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(AppTheme.defaultPadding),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Select Lesson',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  child: Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: Colors.transparent,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white,
+                            AppTheme.primaryBlue.withOpacity(0.03),
+                            AppTheme.primaryBlue.withOpacity(0.05),
+                          ],
+                          stops: const [0.0, 0.6, 1.0],
                         ),
                       ),
-                      const SizedBox(height: AppTheme.defaultSpacing),
-                      if (_lessons.isEmpty)
-                        const Text('No lessons available for this course.'),
-                      if (_lessons.isNotEmpty)
-                        DropdownButtonFormField<Lesson>(
-                          value: _selectedLesson,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 15),
-                          ),
-                          items: _lessons.map((lesson) {
-                            return DropdownMenuItem<Lesson>(
-                              value: lesson,
-                              child: Text(lesson.title),
-                            );
-                          }).toList(),
-                          onChanged: (Lesson? newValue) {
-                            setState(() {
-                              _selectedLesson = newValue;
-                            });
-                          },
-                        ),
-
-                      const SizedBox(height: AppTheme.defaultSpacing * 2),
-
-                      const Text(
-                        'Material Details',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: AppTheme.defaultSpacing),
-
-                      TextFormField(
-                        controller: _titleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Material Title',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: AppTheme.defaultSpacing),
-
-                      // Add Generate with AI button
-                      ElevatedButton.icon(
-                        onPressed: _isGenerating ? null : _generateAIMaterial,
-                        icon: _isGenerating
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.auto_awesome),
-                        label: Text(_isGenerating
-                            ? 'Generating...'
-                            : 'Generate with AI'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlue,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: AppTheme.defaultSpacing),
-
-                      // Material Type Selection
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Material Type',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryBlue,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 16,
-                                runSpacing: 12,
-                                children: _materialTypes.entries.map((entry) {
-                                  return Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Checkbox(
-                                        value: entry.value,
-                                        onChanged: (bool? value) {
-                                          setState(() {
-                                            _materialTypes[entry.key] =
-                                                value ?? false;
-                                          });
-                                        },
-                                      ),
-                                      Text(
-                                        entry.key.toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppTheme.defaultSpacing),
-
-                      // File picker button and selected files display
-                      Column(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: _isUploading ? null : _pickAndUploadFile,
-                            icon: const Icon(Icons.attach_file),
-                            label: const Text('Pick Files'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
-                              foregroundColor: Colors.white,
+                          const Text(
+                            'Select Lesson',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryBlueDark,
                             ),
                           ),
-                          if (_selectedFiles.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(8),
+                          const SizedBox(height: AppTheme.defaultSpacing),
+                          if (_lessons.isEmpty)
+                            const Text('No lessons available for this course.'),
+                          if (_lessons.isNotEmpty)
+                            DropdownButtonFormField<Lesson>(
+                              value: _selectedLesson,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 15),
                               ),
-                              child: ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _selectedFiles.length,
-                                itemBuilder: (context, index) {
-                                  final file = _selectedFiles[index];
-                                  final isUploading = _isUploading &&
-                                      _selectedFileIndices.contains(index);
-                                  final uploadProgress =
-                                      _fileUploadProgress[index] ?? 0.0;
-
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: Colors.grey[300]!,
-                                          width:
-                                              index < _selectedFiles.length - 1
-                                                  ? 1
-                                                  : 0,
-                                        ),
-                                      ),
+                              items: _lessons.map((lesson) {
+                                return DropdownMenuItem<Lesson>(
+                                  value: lesson,
+                                  child: Text(lesson.title),
+                                );
+                              }).toList(),
+                              onChanged: (Lesson? newValue) {
+                                setState(() {
+                                  _selectedLesson = newValue;
+                                });
+                              },
+                            ),
+                          const SizedBox(height: AppTheme.defaultSpacing * 2),
+                          const Text(
+                            'Material Details',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryBlueDark,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.defaultSpacing),
+                          TextFormField(
+                            controller: _titleController,
+                            decoration: const InputDecoration(
+                              labelText: 'Material Title',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.defaultSpacing),
+                          // Material Type Selection
+                          Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Material Type',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryBlue,
                                     ),
-                                    child: Column(
-                                      children: [
-                                        ListTile(
-                                          leading: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Checkbox(
-                                                value: _selectedFileIndices
-                                                    .contains(index),
-                                                onChanged: _isUploading
-                                                    ? null
-                                                    : (bool? value) {
-                                                        setState(() {
-                                                          if (value == true) {
-                                                            _selectedFileIndices
-                                                                .add(index);
-                                                          } else {
-                                                            _selectedFileIndices
-                                                                .remove(index);
-                                                          }
-                                                        });
-                                                      },
-                                              ),
-                                              Icon(
-                                                _getFileIcon(file.extension),
-                                                color: AppTheme.primaryBlue,
-                                              ),
-                                            ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 16,
+                                    runSpacing: 12,
+                                    children:
+                                        _materialTypes.entries.map((entry) {
+                                      return Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Checkbox(
+                                            value: entry.value,
+                                            onChanged: (bool? value) {
+                                              setState(() {
+                                                _materialTypes[entry.key] =
+                                                    value ?? false;
+                                              });
+                                            },
                                           ),
-                                          title: Text(
-                                            file.name,
+                                          Text(
+                                            entry.key.toUpperCase(),
                                             style: const TextStyle(
+                                              fontSize: 14,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
-                                          subtitle: Text(
-                                            '${(file.size / 1024).toStringAsFixed(2)} KB',
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
+                                        ],
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.defaultSpacing),
+                          // File picker button and selected files display
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ElevatedButton(
+                                onPressed:
+                                    _isUploading ? null : _pickAndUploadFile,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryBlue,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Pick Files'),
+                              ),
+                              if (_selectedFiles.isNotEmpty) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    border:
+                                        Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: _selectedFiles.length,
+                                    itemBuilder: (context, index) {
+                                      final file = _selectedFiles[index];
+                                      final isUploading = _isUploading &&
+                                          _selectedFileIndices.contains(index);
+                                      final uploadProgress =
+                                          _fileUploadProgress[index] ?? 0.0;
+
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.grey[300]!,
+                                              width: index <
+                                                      _selectedFiles.length - 1
+                                                  ? 1
+                                                  : 0,
                                             ),
-                                          ),
-                                          trailing: IconButton(
-                                            icon: const Icon(
-                                              Icons.remove_circle_outline,
-                                              color: Colors.red,
-                                            ),
-                                            onPressed: _isUploading
-                                                ? null
-                                                : () {
-                                                    setState(() {
-                                                      _selectedFiles
-                                                          .removeAt(index);
-                                                      _selectedFileIndices
-                                                          .remove(index);
-                                                      // Adjust indices after removal
-                                                      _selectedFileIndices =
-                                                          _selectedFileIndices
-                                                              .map((i) =>
-                                                                  i > index
-                                                                      ? i - 1
-                                                                      : i)
-                                                              .toSet();
-                                                    });
-                                                  },
                                           ),
                                         ),
-                                        if (isUploading)
-                                          Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                16, 0, 16, 8),
-                                            child: Column(
-                                              children: [
-                                                LinearProgressIndicator(
-                                                  value: uploadProgress,
-                                                  backgroundColor:
-                                                      Colors.grey[200],
-                                                  valueColor:
-                                                      const AlwaysStoppedAnimation<
-                                                              Color>(
-                                                          AppTheme.primaryBlue),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
+                                        child: Column(
+                                          children: [
+                                            ListTile(
+                                              leading: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Checkbox(
+                                                    value: _selectedFileIndices
+                                                        .contains(index),
+                                                    onChanged: _isUploading
+                                                        ? null
+                                                        : (bool? value) {
+                                                            setState(() {
+                                                              if (value ==
+                                                                  true) {
+                                                                _selectedFileIndices
+                                                                    .add(index);
+                                                              } else {
+                                                                _selectedFileIndices
+                                                                    .remove(
+                                                                        index);
+                                                              }
+                                                            });
+                                                          },
+                                                  ),
+                                                  Icon(
+                                                    _getFileIcon(
+                                                        file.extension),
+                                                    color: AppTheme.primaryBlue,
+                                                  ),
+                                                ],
+                                              ),
+                                              title: Text(
+                                                file.name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                                const SizedBox(height: 4),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
+                                              ),
+                                              subtitle: Text(
+                                                '${(file.size / 1024).toStringAsFixed(2)} KB',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                              trailing: IconButton(
+                                                icon: const Icon(
+                                                  Icons.remove_circle_outline,
+                                                  color: Colors.red,
+                                                ),
+                                                onPressed: _isUploading
+                                                    ? null
+                                                    : () {
+                                                        setState(() {
+                                                          _selectedFiles
+                                                              .removeAt(index);
+                                                          _selectedFileIndices
+                                                              .remove(index);
+                                                          // Adjust indices after removal
+                                                          _selectedFileIndices =
+                                                              _selectedFileIndices
+                                                                  .map((i) =>
+                                                                      i > index
+                                                                          ? i -
+                                                                              1
+                                                                          : i)
+                                                                  .toSet();
+                                                        });
+                                                      },
+                                              ),
+                                            ),
+                                            if (isUploading)
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        16, 0, 16, 8),
+                                                child: Column(
                                                   children: [
-                                                    const Icon(
-                                                      Icons.upload_file,
-                                                      color:
-                                                          AppTheme.primaryBlue,
-                                                      size: 14,
+                                                    LinearProgressIndicator(
+                                                      value: uploadProgress,
+                                                      backgroundColor:
+                                                          Colors.grey[200],
+                                                      valueColor:
+                                                          const AlwaysStoppedAnimation<
+                                                                  Color>(
+                                                              AppTheme
+                                                                  .primaryBlue),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
                                                     ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${(uploadProgress * 100).toStringAsFixed(1)}%',
-                                                      style: const TextStyle(
-                                                        color: AppTheme
-                                                            .primaryBlue,
-                                                        fontSize: 12,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
+                                                    const SizedBox(height: 4),
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.upload_file,
+                                                          color: AppTheme
+                                                              .primaryBlue,
+                                                          size: 14,
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 4),
+                                                        Text(
+                                                          '${(uploadProgress * 100).toStringAsFixed(1)}%',
+                                                          style:
+                                                              const TextStyle(
+                                                            color: AppTheme
+                                                                .primaryBlue,
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ],
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                          if (_isUploading) ...[
-                            const SizedBox(height: 16),
-                            LinearProgressIndicator(
-                              value: _uploadProgress,
-                              backgroundColor: Colors.grey[200],
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                  AppTheme.primaryBlue),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.upload_file,
-                                  color: AppTheme.primaryBlue,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Uploading: ${(_uploadProgress * 100).toStringAsFixed(1)}%',
-                                  style: const TextStyle(
-                                    color: AppTheme.primaryBlue,
-                                    fontWeight: FontWeight.w500,
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ],
-                            ),
-                          ],
-                        ],
-                      ),
-
-                      const SizedBox(height: AppTheme.defaultSpacing * 2),
-
-                      // Save button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isUploading ? null : _saveMaterial,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: _isUploading
-                              ? Row(
+                              if (_isUploading) ...[
+                                const SizedBox(height: 16),
+                                LinearProgressIndicator(
+                                  value: _uploadProgress,
+                                  backgroundColor: Colors.grey[200],
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                          AppTheme.primaryBlue),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.white),
-                                      ),
+                                    const Icon(
+                                      Icons.upload_file,
+                                      color: AppTheme.primaryBlue,
+                                      size: 16,
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 8),
                                     Text(
                                       'Uploading: ${(_uploadProgress * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(fontSize: 16),
+                                      style: const TextStyle(
+                                        color: AppTheme.primaryBlue,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ],
-                                )
-                              : const Text('Save Material'),
-                        ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.defaultSpacing * 2),
+                          // Save button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isUploading ? null : _saveMaterial,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryBlue,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: _isUploading
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Uploading: ${(_uploadProgress * 100).toStringAsFixed(1)}%',
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ],
+                                    )
+                                  : const Text('Save Material'),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
     );

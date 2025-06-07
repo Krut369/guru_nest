@@ -94,6 +94,21 @@ class _QuizQuestionsScreenState extends State<QuizQuestionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Glass blue gradient for cards (matches quiz management)
+    BoxDecoration glassBlueCardDecoration = BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.white,
+          AppTheme.primaryBlue.withOpacity(0.03),
+          AppTheme.primaryBlue.withOpacity(0.05),
+        ],
+        stops: const [0.0, 0.6, 1.0],
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Questions - ${widget.quizTitle}'),
@@ -165,98 +180,103 @@ class _QuizQuestionsScreenState extends State<QuizQuestionsScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'Question ${index + 1}',
-                                          style: const TextStyle(
-                                            fontSize: 16,
+                          color: Colors.transparent,
+                          child: Container(
+                            decoration: glassBlueCardDecoration,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Question ${index + 1}',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit),
+                                            onPressed: () {
+                                              // TODO: Navigate to edit question screen
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete),
+                                            color: AppTheme.errorRed,
+                                            onPressed: () =>
+                                                _deleteQuestion(question['id']),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        question['question_text'] ??
+                                            'No question text',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      if (question['options'] != null) ...[
+                                        const Text(
+                                          'Options:',
+                                          style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                        const Spacer(),
-                                        IconButton(
-                                          icon: const Icon(Icons.edit),
-                                          onPressed: () {
-                                            // TODO: Navigate to edit question screen
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete),
-                                          color: AppTheme.errorRed,
-                                          onPressed: () =>
-                                              _deleteQuestion(question['id']),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      question['question_text'] ??
-                                          'No question text',
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    if (question['options'] != null) ...[
-                                      const Text(
-                                        'Options:',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ...List.generate(
-                                        (question['options'] as List).length,
-                                        (optionIndex) {
-                                          final option =
-                                              question['options'][optionIndex];
-                                          final isCorrect =
-                                              option['is_correct'] == true;
-                                          return Padding(
-                                            padding: const EdgeInsets.only(
-                                                bottom: 8),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  isCorrect
-                                                      ? Icons.check_circle
-                                                      : Icons.circle_outlined,
-                                                  color: isCorrect
-                                                      ? Colors.green
-                                                      : Colors.grey,
-                                                  size: 20,
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    option['text'] ?? '',
-                                                    style: TextStyle(
-                                                      color: isCorrect
-                                                          ? Colors.green
-                                                          : null,
-                                                      fontWeight: isCorrect
-                                                          ? FontWeight.bold
-                                                          : null,
+                                        const SizedBox(height: 8),
+                                        ...List.generate(
+                                          (question['options'] as List).length,
+                                          (optionIndex) {
+                                            final option = question['options']
+                                                [optionIndex];
+                                            final isCorrect =
+                                                option['is_correct'] == true;
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 8),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    isCorrect
+                                                        ? Icons.check_circle
+                                                        : Icons.circle_outlined,
+                                                    color: isCorrect
+                                                        ? Colors.green
+                                                        : Colors.grey,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      option['text'] ?? '',
+                                                      style: TextStyle(
+                                                        color: isCorrect
+                                                            ? Colors.green
+                                                            : null,
+                                                        fontWeight: isCorrect
+                                                            ? FontWeight.bold
+                                                            : null,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ],
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         );
                       },

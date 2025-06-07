@@ -3,6 +3,7 @@ class TeacherDashboardData {
   final int totalCourses;
   final int totalQuizzes;
   final int totalMaterials;
+  final int totalCategories;
   final List<RecentActivity> recentActivities;
   final List<CourseStats> courseStats;
 
@@ -11,6 +12,7 @@ class TeacherDashboardData {
     required this.totalCourses,
     required this.totalQuizzes,
     required this.totalMaterials,
+    required this.totalCategories,
     required this.recentActivities,
     required this.courseStats,
   });
@@ -21,6 +23,7 @@ class TeacherDashboardData {
       totalCourses: json['total_courses'] ?? 0,
       totalQuizzes: json['total_quizzes'] ?? 0,
       totalMaterials: json['total_materials'] ?? 0,
+      totalCategories: json['total_categories'] ?? 0,
       recentActivities: (json['recent_activities'] as List?)
               ?.map((e) => RecentActivity.fromJson(e))
               .toList() ??

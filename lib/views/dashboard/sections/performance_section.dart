@@ -68,54 +68,42 @@ class _PerformanceSectionState extends State<PerformanceSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Performance'),
-        actions: [
-          if (_currentUser != null)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _loadUserAndReport,
-            ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: AppTheme.errorRed),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadUserAndReport,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+            : RefreshIndicator(
+                onRefresh: _loadUserAndReport,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppTheme.defaultPadding),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: AppTheme.errorRed),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadUserAndReport,
-                        child: const Text('Retry'),
-                      ),
+                      _buildOverallProgress(context),
+                      const SizedBox(height: AppTheme.defaultPadding),
+                      _buildCourseProgress(context),
+                      const SizedBox(height: AppTheme.defaultPadding),
+                      _buildAchievements(context),
                     ],
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadUserAndReport,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppTheme.defaultPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildOverallProgress(context),
-                        const SizedBox(height: AppTheme.defaultPadding),
-                        _buildCourseProgress(context),
-                        const SizedBox(height: AppTheme.defaultPadding),
-                        _buildAchievements(context),
-                      ],
-                    ),
-                  ),
                 ),
-    );
+              );
   }
 
   Widget _buildOverallProgress(BuildContext context) {
@@ -216,12 +204,6 @@ class _PerformanceSectionState extends State<PerformanceSection> {
               'Lessons Completed',
               totalLessons,
               AppTheme.primaryBlue,
-            ),
-            const SizedBox(height: AppTheme.smallSpacing),
-            _buildProgressItem(
-              'Materials Accessed',
-              totalMaterials,
-              AppTheme.warningOrange,
             ),
           ],
         ),

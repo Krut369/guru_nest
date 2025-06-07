@@ -25,6 +25,14 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
   String? _error;
   String? _selectedCourseId;
   final Map<String, dynamic> _quizStats = {};
+  String _sortBy = 'Title';
+  final List<String> _sortOptions = [
+    'Title',
+    'Questions',
+    'Attempts',
+    'Average Score',
+    'Highest Score',
+  ];
 
   @override
   void initState() {
@@ -66,7 +74,7 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
       // First, get the quizzes
       final quizzes = await Supabase.instance.client
           .from('quizzes')
-          .select('*')
+          .select('*, lessons(title)')
           .eq('course_id', courseId)
           .order('id', ascending: false);
 
@@ -100,11 +108,18 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
           };
         });
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print('Exception in loadQuizzes: $e');
+      print('Stack trace: $stack');
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -124,17 +139,21 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
       }
 
       final scores =
-          results.map((r) => (r['score'] as num).toDouble()).toList();
-      final averageScore = scores.reduce((a, b) => a + b) / scores.length;
-      final highestScore = scores.reduce((a, b) => a > b ? a : b);
+          results.map<num>((r) => (r['score'] as num?) ?? 0).toList();
+      final totalAttempts = scores.length;
+      final averageScore = scores.isNotEmpty
+          ? scores.reduce((a, b) => a + b) / scores.length
+          : 0.0;
+      final highestScore =
+          scores.isNotEmpty ? scores.reduce((a, b) => a > b ? a : b) : 0.0;
 
       return {
         'averageScore': averageScore,
-        'totalAttempts': scores.length,
+        'totalAttempts': totalAttempts,
         'highestScore': highestScore,
       };
     } catch (e) {
-      print('Error loading quiz stats: $e');
+      print('Exception in loadQuizStats: $e');
       return {
         'averageScore': 0.0,
         'totalAttempts': 0,
@@ -145,6 +164,13 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double baseFont = screenWidth >= 1200
+        ? 20
+        : screenWidth >= 800
+            ? 16
+            : 14;
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -179,6 +205,50 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
         ),
       );
     }
+
+    // Sort quizzes based on _sortBy
+    List<Map<String, dynamic>> sortedQuizzes = List.from(_quizzes);
+    sortedQuizzes.sort((a, b) {
+      final statsA = _quizStats[a['id']] ?? {};
+      final statsB = _quizStats[b['id']] ?? {};
+      int safeInt(dynamic value) {
+        if (value == null) return 0;
+        if (value is int) return value;
+        if (value is double) return value.toInt();
+        final parsed = int.tryParse(value.toString());
+        return parsed ?? 0;
+      }
+
+      double safeDouble(dynamic value) {
+        if (value == null) return 0.0;
+        if (value is double) return value;
+        if (value is int) return value.toDouble();
+        final parsed = double.tryParse(value.toString());
+        return parsed ?? 0.0;
+      }
+
+      switch (_sortBy) {
+        case 'Title':
+          return (a['title'] ?? '')
+              .toString()
+              .toLowerCase()
+              .compareTo((b['title'] ?? '').toString().toLowerCase());
+        case 'Questions':
+          return safeInt(statsB['questionCount'] ?? 0)
+              .compareTo(safeInt(statsA['questionCount'] ?? 0));
+        case 'Attempts':
+          return safeInt(statsB['attemptCount'] ?? 0)
+              .compareTo(safeInt(statsA['attemptCount'] ?? 0));
+        case 'Average Score':
+          return safeDouble(statsB['averageScore'] ?? 0.0)
+              .compareTo(safeDouble(statsA['averageScore'] ?? 0.0));
+        case 'Highest Score':
+          return safeDouble(statsB['highestScore'] ?? 0.0)
+              .compareTo(safeDouble(statsA['highestScore'] ?? 0.0));
+        default:
+          return 0;
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -218,44 +288,113 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: DropdownButtonFormField<String>(
-              value: _selectedCourseId,
-              decoration: InputDecoration(
-                labelText: 'Select Course',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              items: _courses.map((course) {
-                return DropdownMenuItem<String>(
-                  value: course['id'].toString(),
-                  child: Text(course['title'] ?? 'Untitled Course'),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedCourseId = value);
-                  _loadQuizzes();
-                }
-              },
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white,
+                      AppTheme.primaryBlue.withOpacity(0.03),
+                      AppTheme.primaryBlue.withOpacity(0.05),
+                    ],
+                    stops: const [0.0, 0.6, 1.0],
+                  ),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedCourseId,
+                          decoration: InputDecoration(
+                            labelText: 'Select Course',
+                            labelStyle: TextStyle(
+                                fontSize: baseFont, color: Colors.black),
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 8),
+                          ),
+                          style: TextStyle(
+                              fontSize: baseFont, color: Colors.black),
+                          dropdownColor: Colors.white,
+                          items: _courses.map((course) {
+                            return DropdownMenuItem<String>(
+                              value: course['id'].toString(),
+                              child: Text(course['title'] ?? 'Untitled Course',
+                                  style: TextStyle(
+                                      fontSize: baseFont, color: Colors.black)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _selectedCourseId = value);
+                              _loadQuizzes();
+                            }
+                          },
+                        ),
+                      ),
+                      SizedBox(width: screenWidth < 400 ? 8 : 16),
+                      Expanded(
+                        flex: 1,
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Sort by',
+                            labelStyle: TextStyle(
+                                fontSize: baseFont, color: Colors.black),
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: FittedBox(
+                              child: DropdownButton<String>(
+                                value: _sortBy,
+                                isDense: true,
+                                style: TextStyle(
+                                    fontSize: baseFont, color: Colors.black),
+                                dropdownColor: Colors.white,
+                                items: _sortOptions.map((option) {
+                                  return DropdownMenuItem<String>(
+                                    value: option,
+                                    child: Text(option,
+                                        style: TextStyle(
+                                            fontSize: baseFont,
+                                            color: Colors.black)),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      _sortBy = value;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           Expanded(
-            child: _quizzes.isEmpty
+            child: sortedQuizzes.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -315,9 +454,9 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: _quizzes.length,
+                    itemCount: sortedQuizzes.length,
                     itemBuilder: (context, index) {
-                      final quiz = _quizzes[index];
+                      final quiz = sortedQuizzes[index];
                       final stats = _quizStats[quiz['id']] ??
                           {
                             'averageScore': 0.0,
@@ -329,178 +468,229 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
                         margin: const EdgeInsets.only(bottom: 16),
                         elevation: 2,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Column(
-                          children: [
-                            ListTile(
-                              contentPadding: const EdgeInsets.all(16),
-                              title: Text(
-                                quiz['title'] ?? 'Untitled Quiz',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                        child: InkWell(
+                          onTap: () {
+                            // Handle quiz tap
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white,
+                                  AppTheme.primaryBlue.withOpacity(0.03),
+                                  AppTheme.primaryBlue.withOpacity(0.05),
+                                ],
+                                stops: const [0.0, 0.6, 1.0],
                               ),
-                              subtitle: Column(
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    quiz['description'] ?? 'No description',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
+                                  ListTile(
+                                    contentPadding: const EdgeInsets.all(16),
+                                    title: Text(
+                                      quiz['title'] ?? 'Untitled Quiz',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          quiz['description'] ??
+                                              'No description',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        if (quiz['lessons'] != null &&
+                                            quiz['lessons']['title'] != null)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 4.0),
+                                            child: Text(
+                                              'Lesson: ${quiz['lessons']['title']}',
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                fontStyle: FontStyle.italic,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 16),
+                                        Builder(
+                                          builder: (context) {
+                                            print(
+                                                'Quiz ID: \\${quiz['id']} Stats: \\$stats');
+                                            return Row(
+                                              children: [
+                                                _buildStatItem(
+                                                  Icons.question_answer,
+                                                  '${_quizStats[quiz['id']]?['questionCount'] ?? 0} Questions',
+                                                ),
+                                                const SizedBox(width: 16),
+                                                _buildStatItem(
+                                                  Icons.people,
+                                                  '${stats['totalAttempts']?.toString() ?? '0'} Attempts',
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      _buildStatItem(
-                                        Icons.question_answer,
-                                        '${_quizStats[quiz['id']]?['questionCount'] ?? 0} Questions',
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: const BorderRadius.only(
+                                        bottomLeft: Radius.circular(12),
+                                        bottomRight: Radius.circular(12),
                                       ),
-                                      const SizedBox(width: 16),
-                                      _buildStatItem(
-                                        Icons.people,
-                                        '${_quizStats[quiz['id']]?['attemptCount'] ?? 0} Attempts',
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        _buildStatCard(
+                                          'Average Score',
+                                          '${stats['averageScore'] != null ? (stats['averageScore'] as num).toStringAsFixed(1) : '0.0'}%',
+                                          Icons.bar_chart,
+                                          AppTheme.primaryBlue,
+                                        ),
+                                        _buildStatCard(
+                                          'Highest Score',
+                                          '${stats['highestScore'] != null ? (stats['highestScore'] as num).toStringAsFixed(1) : '0.0'}%',
+                                          Icons.emoji_events,
+                                          Colors.amber,
+                                        ),
+                                        _buildStatCard(
+                                          'Total Attempts',
+                                          stats['totalAttempts']?.toString() ??
+                                              '0',
+                                          Icons.people,
+                                          Colors.green,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  OverflowBar(
+                                    alignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton.icon(
+                                        icon: const Icon(Icons.question_answer),
+                                        label: const Text('Questions'),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  QuizQuestionsScreen(
+                                                quizId: quiz['id'],
+                                                quizTitle: quiz['title'] ??
+                                                    'Untitled Quiz',
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      TextButton.icon(
+                                        icon: const Icon(Icons.edit),
+                                        label: const Text('Edit'),
+                                        onPressed: () async {
+                                          final result = await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  EditQuizScreen(
+                                                quizId: quiz['id'],
+                                                courseId: _selectedCourseId!,
+                                                quizData: quiz,
+                                              ),
+                                            ),
+                                          );
+
+                                          if (result == true) {
+                                            _loadQuizzes();
+                                          }
+                                        },
+                                      ),
+                                      TextButton.icon(
+                                        icon: const Icon(Icons.delete),
+                                        label: const Text('Delete'),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppTheme.errorRed,
+                                        ),
+                                        onPressed: () async {
+                                          final confirmed =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Delete Quiz'),
+                                              content: const Text(
+                                                  'Are you sure you want to delete this quiz? This action cannot be undone.'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, false),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, true),
+                                                  style: TextButton.styleFrom(
+                                                    foregroundColor:
+                                                        AppTheme.errorRed,
+                                                  ),
+                                                  child: const Text('Delete'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+
+                                          if (confirmed == true) {
+                                            try {
+                                              await Supabase.instance.client
+                                                  .from('quizzes')
+                                                  .delete()
+                                                  .eq('id', quiz['id']);
+                                              _loadQuizzes();
+                                            } catch (e) {
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        'Error deleting quiz: $e'),
+                                                    backgroundColor:
+                                                        AppTheme.errorRed,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          }
+                                        },
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: const BorderRadius.only(
-                                  bottomLeft: Radius.circular(12),
-                                  bottomRight: Radius.circular(12),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  _buildStatCard(
-                                    'Average Score',
-                                    '${stats['averageScore'].toStringAsFixed(1)}%',
-                                    Icons.bar_chart,
-                                    AppTheme.primaryBlue,
-                                  ),
-                                  _buildStatCard(
-                                    'Highest Score',
-                                    '${stats['highestScore'].toStringAsFixed(1)}%',
-                                    Icons.emoji_events,
-                                    Colors.amber,
-                                  ),
-                                  _buildStatCard(
-                                    'Total Attempts',
-                                    stats['totalAttempts'].toString(),
-                                    Icons.people,
-                                    Colors.green,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            OverflowBar(
-                              alignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton.icon(
-                                  icon: const Icon(Icons.question_answer),
-                                  label: const Text('Questions'),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            QuizQuestionsScreen(
-                                          quizId: quiz['id'],
-                                          quizTitle:
-                                              quiz['title'] ?? 'Untitled Quiz',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                TextButton.icon(
-                                  icon: const Icon(Icons.edit),
-                                  label: const Text('Edit'),
-                                  onPressed: () async {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => EditQuizScreen(
-                                          quizId: quiz['id'],
-                                          courseId: _selectedCourseId!,
-                                          quizData: quiz,
-                                        ),
-                                      ),
-                                    );
-
-                                    if (result == true) {
-                                      _loadQuizzes();
-                                    }
-                                  },
-                                ),
-                                TextButton.icon(
-                                  icon: const Icon(Icons.delete),
-                                  label: const Text('Delete'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppTheme.errorRed,
-                                  ),
-                                  onPressed: () async {
-                                    final confirmed = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Delete Quiz'),
-                                        content: const Text(
-                                            'Are you sure you want to delete this quiz? This action cannot be undone.'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            style: TextButton.styleFrom(
-                                              foregroundColor:
-                                                  AppTheme.errorRed,
-                                            ),
-                                            child: const Text('Delete'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-
-                                    if (confirmed == true) {
-                                      try {
-                                        await Supabase.instance.client
-                                            .from('quizzes')
-                                            .delete()
-                                            .eq('id', quiz['id']);
-                                        _loadQuizzes();
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                  'Error deleting quiz: $e'),
-                                              backgroundColor:
-                                                  AppTheme.errorRed,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
                         ),
                       );
                     },
@@ -552,5 +742,15 @@ class _QuizManagementScreenState extends State<QuizManagementScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> testPrint() async {
+    print('Test print: This should always show up in your console.');
+    try {
+      throw Exception('This is a test error');
+    } catch (e, stack) {
+      print('Caught error: $e');
+      print('Stack trace: $stack');
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
+import '../../core/theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/course_service.dart';
 
@@ -108,7 +110,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageBytes == null) {
+    if (widget.course == null && _imageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a course image')),
       );
@@ -129,25 +131,71 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       final userData = jsonDecode(userJson);
       final user = User.fromJson(userData);
 
-      await _courseService.createCourse(
-        title: _titleController.text,
-        description: _descriptionController.text,
-        price: double.parse(_priceController.text),
-        categoryId: _selectedCategory!,
-        imageBytes: _imageBytes,
-        teacherId: user.id,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Course created successfully')),
+      if (widget.course == null) {
+        // CREATE MODE
+        await _courseService.createCourse(
+          title: _titleController.text,
+          description: _descriptionController.text,
+          price: double.parse(_priceController.text),
+          categoryId: _selectedCategory!,
+          imageBytes: _imageBytes,
+          teacherId: user.id,
         );
-        Navigator.pop(context, true); // Return true to indicate success
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Course created successfully')),
+          );
+          Navigator.pop(context, true);
+        }
+      } else {
+        // EDIT MODE
+        // Only update fields that have changed
+        final String courseId = widget.course!['id'];
+        String? newTitle = _titleController.text != widget.course!['title']
+            ? _titleController.text
+            : null;
+        String? newDescription =
+            _descriptionController.text != widget.course!['description']
+                ? _descriptionController.text
+                : null;
+        double? newPrice = double.tryParse(_priceController.text) != null &&
+                double.parse(_priceController.text) !=
+                    (widget.course!['price'] is String
+                        ? double.parse(widget.course!['price'])
+                        : widget.course!['price'])
+            ? double.parse(_priceController.text)
+            : null;
+        String? newCategoryId =
+            _selectedCategory != widget.course!['category_id']?.toString()
+                ? _selectedCategory
+                : null;
+        // For image, only update if a new image is picked
+        File? imageFile;
+        if (_imageFile != null) {
+          imageFile = File(_imageFile!.path);
+        }
+        await _courseService.updateCourse(
+          courseId: courseId,
+          title: newTitle,
+          description: newDescription,
+          price: newPrice,
+          categoryId: newCategoryId,
+          imageFile: imageFile,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Course updated successfully')),
+          );
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating course: $e')),
+          SnackBar(
+              content: Text(widget.course == null
+                  ? 'Error creating course: $e'
+                  : 'Error updating course: $e')),
         );
       }
     } finally {
@@ -161,12 +209,27 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final BoxDecoration glassBlueCardDecoration = BoxDecoration(
+      borderRadius: BorderRadius.circular(16),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.white,
+          AppTheme.primaryBlue.withOpacity(0.03),
+          AppTheme.primaryBlue.withOpacity(0.05),
+        ],
+        stops: const [0.0, 0.6, 1.0],
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Course'),
+        title: Text(widget.course == null ? 'Add New Course' : 'Edit Course',
+            style: const TextStyle(color: Colors.white)),
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        backgroundColor: AppTheme.primaryBlue,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -204,106 +267,120 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Course Title
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Course Title',
-                  border: OutlineInputBorder(),
+              // All form fields and button in one glass blue card
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a course title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Course Description
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Course Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 4,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a course description';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Course Category
-              _isLoadingCategories
-                  ? const Center(child: CircularProgressIndicator())
-                  : DropdownButtonFormField<String>(
-                      value: _selectedCategory,
-                      decoration: const InputDecoration(
-                        labelText: 'Category',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _categories.map((category) {
-                        return DropdownMenuItem<String>(
-                          value: category['id'].toString(),
-                          child: Text(category['name'] as String),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedCategory = newValue;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a category';
-                        }
-                        return null;
-                      },
-                    ),
-              const SizedBox(height: 16),
-
-              // Course Price
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price',
-                  border: OutlineInputBorder(),
-                  prefixText: '\$',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a price';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text(
-                          'Create Course',
-                          style: TextStyle(fontSize: 16),
+                color: Colors.transparent,
+                child: Container(
+                  decoration: glassBlueCardDecoration,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Course Title',
+                          border: OutlineInputBorder(),
                         ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a course title';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Course Description',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 4,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a course description';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _isLoadingCategories
+                          ? const Center(child: CircularProgressIndicator())
+                          : DropdownButtonFormField<String>(
+                              value: _selectedCategory,
+                              decoration: const InputDecoration(
+                                labelText: 'Category',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: _categories.map((category) {
+                                return DropdownMenuItem<String>(
+                                  value: category['id'].toString(),
+                                  child: Text(category['name'] as String),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedCategory = newValue;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please select a category';
+                                }
+                                return null;
+                              },
+                              dropdownColor: Colors.white,
+                            ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _priceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Price',
+                          border: OutlineInputBorder(),
+                          prefixText: '\$',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a price';
+                          }
+                          if (double.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            backgroundColor: AppTheme.primaryBlueDark,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
+                              : Text(
+                                  widget.course == null
+                                      ? 'Create Course'
+                                      : 'Save Changes',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -311,5 +388,43 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
         ),
       ),
     );
+  }
+}
+
+Future<Map<String, dynamic>> _loadQuizStats(String quizId) async {
+  try {
+    final results = await Supabase.instance.client
+        .from('quiz_results')
+        .select('score')
+        .eq('quiz_id', quizId);
+
+    if (results.isEmpty) {
+      return {
+        'averageScore': 0.0,
+        'totalAttempts': 0,
+        'highestScore': 0.0,
+      };
+    }
+
+    final scores = results.map<num>((r) => (r['score'] as num?) ?? 0).toList();
+    final totalAttempts = scores.length;
+    final averageScore = scores.isNotEmpty
+        ? scores.reduce((a, b) => a + b) / scores.length
+        : 0.0;
+    final highestScore =
+        scores.isNotEmpty ? scores.reduce((a, b) => a > b ? a : b) : 0.0;
+
+    return {
+      'averageScore': averageScore,
+      'totalAttempts': totalAttempts,
+      'highestScore': highestScore,
+    };
+  } catch (e) {
+    print('Exception in loadQuizStats: $e');
+    return {
+      'averageScore': 0.0,
+      'totalAttempts': 0,
+      'highestScore': 0.0,
+    };
   }
 }

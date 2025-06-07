@@ -3,9 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../../core/theme/app_theme.dart';
-import '../../models/course_model.dart';
 import '../../services/course_service.dart';
-import 'add_course_screen.dart';
+import 'course_form_screen.dart';
 
 class CourseManagementScreen extends StatefulWidget {
   const CourseManagementScreen({Key? key}) : super(key: key);
@@ -61,18 +60,14 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
         _error = '';
       });
 
-      print('Fetching all courses...');
-
-      // Direct Supabase query without authentication check
-      final response = await supabase.Supabase.instance.client
-          .from('courses')
-          .select()
-          .order('created_at', ascending: false);
-
-      print('Raw response from Supabase: $response');
+      final response =
+          await supabase.Supabase.instance.client.from('courses').select('''
+            *,
+            categories(name),
+            teacher:users(full_name, email)
+          ''').order('created_at', ascending: false);
 
       if ((response as List).isEmpty) {
-        print('No courses found');
         setState(() {
           _courses = [];
           _isLoading = false;
@@ -80,35 +75,23 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
         return;
       }
 
-      final courses = (response as List).map((json) {
-        print('Processing course: $json');
-        // Handle missing or incomplete teacher data
-        if (json['teacher'] != null) {
-          if (json['teacher']['role'] == null) {
-            json['teacher']['role'] = 'teacher'; // Default to teacher role
-          }
-          if (json['teacher']['created_at'] == null) {
-            json['teacher']['created_at'] = DateTime.now().toIso8601String();
-          }
-        }
-        return Course.fromJson(json);
-      }).toList();
-
-      print('Processed courses: ${courses.length}');
-      if (courses.isNotEmpty) {
-        print('First course: ${courses.first.toJson()}');
-      } else {
-        print('No courses found after processing');
+      // Fetch enrollments count for each course
+      final List<Map<String, dynamic>> courses =
+          List<Map<String, dynamic>>.from(response);
+      for (final course in courses) {
+        final enrollments = await _supabase
+            .from('enrollments')
+            .select('id')
+            .eq('course_id', course['id']);
+        course['enrollments_count'] = (enrollments as List).length;
       }
 
       setState(() {
-        _courses = courses.map((course) => course.toJson()).toList();
+        _courses = courses;
         _isLoading = false;
       });
       _animationController.forward();
-    } catch (e, stackTrace) {
-      print('Error loading courses: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -175,6 +158,21 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
         ],
       ),
     );
+  }
+
+  void _showCourseForm({Map<String, dynamic>? course}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CourseFormScreen(
+          course: course,
+        ),
+      ),
+    ).then((result) {
+      if (result == true) {
+        _loadCourses();
+      }
+    });
   }
 
   @override
@@ -250,17 +248,7 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                       ),
                       const SizedBox(height: 32),
                       ElevatedButton.icon(
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AddCourseScreen(),
-                            ),
-                          );
-                          if (result == true) {
-                            _loadCourses();
-                          }
-                        },
+                        onPressed: () => _showCourseForm(),
                         icon: const Icon(Icons.add),
                         label: const Text('Create Course'),
                         style: ElevatedButton.styleFrom(
@@ -294,19 +282,7 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: InkWell(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AddCourseScreen(
-                                  course: course,
-                                ),
-                              ),
-                            );
-                            if (result == true) {
-                              _loadCourses();
-                            }
-                          },
+                          onTap: () => _showCourseForm(course: course),
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
                             decoration: BoxDecoration(
@@ -352,6 +328,13 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                                                 )
                                               : null,
                                         ),
+                                        child: course['image_url'] == null
+                                            ? Icon(
+                                                Icons.school,
+                                                size: 40,
+                                                color: _primaryColor,
+                                              )
+                                            : null,
                                       ),
                                       const SizedBox(width: 16),
                                       Expanded(
@@ -360,7 +343,8 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              course['title'],
+                                              course['title'] ??
+                                                  'Untitled Course',
                                               style: TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
@@ -374,28 +358,11 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.grey[600],
-                                              ),                                            ),
-
+                                              ),
+                                            ),
                                             const SizedBox(height: 8),
                                             Row(
                                               children: [
-                                                const Icon(
-                                                  Icons.star,
-                                                  size: 16,
-                                                  color: Colors.amber,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  course['rating']
-                                                          ?.toStringAsFixed(
-                                                              1) ??
-                                                      '0.0',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 16),
                                                 Icon(
                                                   Icons.people,
                                                   size: 16,
@@ -403,7 +370,7 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  '${course['enrollments'] ?? 0} students',
+                                                  '${course['enrollments_count'] ?? 0} students',
                                                   style: TextStyle(
                                                     fontSize: 14,
                                                     color: Colors.grey[600],
@@ -452,21 +419,8 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                                               Icons.edit,
                                               color: AppTheme.primaryBlue,
                                             ),
-                                            onPressed: () async {
-                                              final result =
-                                                  await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      AddCourseScreen(
-                                                    course: course,
-                                                  ),
-                                                ),
-                                              );
-                                              if (result == true) {
-                                                _loadCourses();
-                                              }
-                                            },
+                                            onPressed: () =>
+                                                _showCourseForm(course: course),
                                           ),
                                           IconButton(
                                             icon: const Icon(
@@ -494,17 +448,7 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddCourseScreen(),
-            ),
-          );
-          if (result == true) {
-            _loadCourses();
-          }
-        },
+        onPressed: () => _showCourseForm(),
         icon: const Icon(Icons.add),
         label: const Text('Create Course'),
         backgroundColor: _primaryColor,

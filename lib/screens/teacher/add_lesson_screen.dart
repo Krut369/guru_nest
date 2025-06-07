@@ -84,23 +84,23 @@ class _AddLessonScreenState extends State<AddLessonScreen> {
     });
 
     try {
-      final lessonData = {
-        'id': widget.lesson?.id ?? _uuid.v4(),
-        'course_id': widget.courseId,
-        'title': _titleController.text,
-        'content': _contentController.text,
-        'lesson_order': int.parse(_orderController.text),
-      };
-
       if (widget.lesson == null) {
-        // Create new lesson
-        await _supabase.from('lessons').insert(lessonData);
+        // Create new lesson using service
+        await _courseService.createLesson(
+          courseId: widget.courseId,
+          title: _titleController.text,
+          content: _contentController.text,
+          lessonOrder: int.parse(_orderController.text),
+        );
       } else {
-        // Update existing lesson
-        await _supabase
-            .from('lessons')
-            .update(lessonData)
-            .eq('id', widget.lesson!.id);
+        // Update existing lesson using service
+        await _courseService.updateLesson(
+          lessonId: widget.lesson!.id,
+          courseId: widget.courseId,
+          title: _titleController.text,
+          content: _contentController.text,
+          lessonOrder: int.parse(_orderController.text),
+        );
       }
 
       if (mounted) {
@@ -121,99 +121,153 @@ class _AddLessonScreenState extends State<AddLessonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Glass blue gradient for cards (matches quiz management)
+    final BoxDecoration glassBlueCardDecoration = BoxDecoration(
+      borderRadius: BorderRadius.circular(16),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.white,
+          AppTheme.primaryBlue.withOpacity(0.03),
+          AppTheme.primaryBlue.withOpacity(0.05),
+        ],
+        stops: const [0.0, 0.6, 1.0],
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.lesson == null ? 'Add Lesson' : 'Edit Lesson'),
+        title: Text(
+          widget.lesson == null ? 'Add Lesson' : 'Update Lesson',
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTheme.defaultPadding),
+              padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_error != null)
                       Container(
-                        padding: const EdgeInsets.all(AppTheme.smallSpacing),
-                        margin: const EdgeInsets.only(
-                            bottom: AppTheme.defaultSpacing),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
                           color: Colors.red.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           _error!,
-                          style: TextStyle(color: Colors.red.shade900),
+                          style: TextStyle(
+                            color: Colors.red.shade900,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Lesson Title',
-                        border: OutlineInputBorder(),
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a title';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppTheme.defaultSpacing),
-                    TextFormField(
-                      controller: _contentController,
-                      decoration: const InputDecoration(
-                        labelText: 'Lesson Content',
-                        border: OutlineInputBorder(),
-                        alignLabelWithHint: true,
-                      ),
-                      maxLines: 10,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter lesson content';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppTheme.defaultSpacing),
-                    TextFormField(
-                      controller: _orderController,
-                      decoration: const InputDecoration(
-                        labelText: 'Lesson Order',
-                        border: OutlineInputBorder(),
-                        helperText: 'Enter the order number for this lesson',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter lesson order';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppTheme.defaultSpacing * 2),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _saveLesson,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      color: Colors.transparent,
+                      child: Container(
+                        decoration: glassBlueCardDecoration,
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Lesson Details',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryBlueDark,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            TextFormField(
+                              controller: _titleController,
+                              decoration: const InputDecoration(
+                                labelText: 'Lesson Title',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter a title';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _contentController,
+                              decoration: const InputDecoration(
+                                labelText: 'Lesson Content',
+                                border: OutlineInputBorder(),
+                                alignLabelWithHint: true,
+                              ),
+                              maxLines: 10,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter lesson content';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _orderController,
+                              decoration: const InputDecoration(
+                                labelText: 'Lesson Order',
+                                border: OutlineInputBorder(),
+                                hintText:
+                                    'Enter the order number for this lesson',
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter lesson order';
+                                }
+                                if (int.tryParse(value) == null) {
+                                  return 'Please enter a valid number';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _saveLesson,
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  backgroundColor: AppTheme.primaryBlue,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: _isLoading
+                                    ? const CircularProgressIndicator(
+                                        color: Colors.white)
+                                    : Text(
+                                        widget.lesson == null
+                                            ? 'Add Lesson'
+                                            : 'Update Lesson',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(widget.lesson == null
-                              ? 'Add Lesson'
-                              : 'Update Lesson'),
                     ),
                   ],
                 ),

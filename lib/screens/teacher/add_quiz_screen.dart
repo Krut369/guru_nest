@@ -29,6 +29,56 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
   final _optionControllers = List.generate(4, (_) => TextEditingController());
   int _correctOptionIndex = 0;
 
+  List<Map<String, dynamic>> _lessons = [];
+  String? _selectedLessonId;
+  bool _isLessonsLoading = false;
+
+  // Glass blue gradient for cards (matches quiz management)
+  BoxDecoration glassBlueCardDecoration = BoxDecoration(
+    borderRadius: BorderRadius.circular(16),
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Colors.white,
+        AppTheme.primaryBlue.withOpacity(0.03),
+        AppTheme.primaryBlue.withOpacity(0.05),
+      ],
+      stops: const [0.0, 0.6, 1.0],
+    ),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLessons();
+  }
+
+  Future<void> _fetchLessons() async {
+    setState(() {
+      _isLessonsLoading = true;
+    });
+    try {
+      final lessons = await _supabase
+          .from('lessons')
+          .select('id, title')
+          .eq('course_id', widget.courseId)
+          .order('title');
+      setState(() {
+        _lessons = List<Map<String, dynamic>>.from(lessons);
+        if (_lessons.isNotEmpty) {
+          _selectedLessonId = _lessons.first['id'] as String;
+        }
+      });
+    } catch (e) {
+      // Handle error if needed
+    } finally {
+      setState(() {
+        _isLessonsLoading = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -197,6 +247,7 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
             'title': _titleController.text.trim(),
             'description': _descriptionController.text.trim(),
             'course_id': widget.courseId,
+            'lesson_id': _selectedLessonId,
           })
           .select()
           .single();
@@ -239,204 +290,352 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundGrey,
       appBar: AppBar(
-        title: const Text('Add Quiz'),
+        title: Text('Add Quiz',
+            style: Theme.of(context)
+                .textTheme
+                .displayMedium
+                ?.copyWith(color: Colors.white)),
+        elevation: 0,
+        backgroundColor: AppTheme.primaryBlue,
+        foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Quiz Title',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a quiz title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  const Text(
-                    'Questions',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: _isGenerating ? null : _generateAIMCQ,
-                    icon: _isGenerating
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  color: Colors.transparent,
+                  child: Container(
+                    decoration: glassBlueCardDecoration,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Quiz Details',
+                              style: Theme.of(context).textTheme.displayMedium),
+                          const SizedBox(height: 16),
+                          if (_isLessonsLoading)
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 16),
+                              child: LinearProgressIndicator(),
                             ),
-                          )
-                        : const Icon(Icons.auto_awesome),
-                    label: Text(
-                        _isGenerating ? 'Generating...' : 'Generate with AI'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextFormField(
-                        controller: _questionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Question',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ...List.generate(4, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Row(
-                            children: [
-                              Radio<int>(
-                                value: index,
-                                groupValue: _correctOptionIndex,
+                          if (_lessons.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedLessonId,
+                                decoration: const InputDecoration(
+                                  labelText: 'Select Lesson',
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                ),
+                                items: _lessons
+                                    .map((lesson) => DropdownMenuItem<String>(
+                                          value: lesson['id'] as String,
+                                          child:
+                                              Text(lesson['title'] as String),
+                                        ))
+                                    .toList(),
                                 onChanged: (value) {
                                   setState(() {
-                                    _correctOptionIndex = value!;
+                                    _selectedLessonId = value;
                                   });
                                 },
+                                validator: (value) => value == null
+                                    ? 'Please select a lesson'
+                                    : null,
                               ),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _optionControllers[index],
-                                  decoration: InputDecoration(
-                                    labelText: 'Option ${index + 1}',
-                                    border: const OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
+                          TextFormField(
+                            controller: _titleController,
+                            decoration: InputDecoration(
+                              labelText: 'Quiz Title',
+                              border: const OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.85),
+                            ),
+                            style: Theme.of(context).textTheme.bodyLarge,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter a quiz title';
+                              }
+                              return null;
+                            },
                           ),
-                        );
-                      }),
-                      ElevatedButton.icon(
-                        onPressed: _addQuestion,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Question'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlue,
-                          foregroundColor: Colors.white,
-                        ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _descriptionController,
+                            decoration: InputDecoration(
+                              labelText: 'Description',
+                              border: const OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.85),
+                            ),
+                            style: Theme.of(context).textTheme.bodyLarge,
+                            maxLines: 3,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (_questions.isNotEmpty) ...[
-                const Text(
-                  'Added Questions',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-                const SizedBox(height: 16),
-                ...List.generate(_questions.length, (index) {
-                  final question = _questions[index];
-                  String correctAnswer = '';
-                  try {
-                    final options =
-                        List<Map<String, dynamic>>.from(question['options']);
-                    final correct = options.firstWhere(
-                      (opt) => opt['is_correct'] == true,
-                      orElse: () => <String, dynamic>{},
-                    );
-                    if (correct['text'] != null) {
-                      correctAnswer = correct['text'].toString();
-                    } else {
-                      correctAnswer = 'N/A';
-                    }
-                  } catch (e) {
-                    correctAnswer = 'N/A';
-                  }
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 16),
+                  margin: const EdgeInsets.only(bottom: 24),
+                  color: Colors.transparent,
+                  child: Container(
+                    decoration: glassBlueCardDecoration,
                     child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Expanded(
+                              const Expanded(
                                 child: Text(
-                                  question['question'],
-                                  style: const TextStyle(
+                                  'Add Question',
+                                  style: TextStyle(
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
+                                  overflow: TextOverflow
+                                      .ellipsis, // Optional: prevents text overflow
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () => _removeQuestion(index),
+                              const Spacer(),
+                              ElevatedButton.icon(
+                                onPressed:
+                                    _isGenerating ? null : _generateAIMCQ,
+                                icon: _isGenerating
+                                    ? const SizedBox(
+                                        width: double.infinity,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.auto_awesome),
+                                label: Text(_isGenerating
+                                    ? 'Generating...'
+                                    : 'Generate with AI'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryBlue,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Correct answer: $correctAnswer',
-                            style: const TextStyle(
-                              color: AppTheme.primaryBlue,
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _questionController,
+                            decoration: InputDecoration(
+                              labelText: 'Question',
+                              border: const OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.85),
+                            ),
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 16),
+                          ...List.generate(4, (index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Row(
+                                children: [
+                                  Radio<int>(
+                                    value: index,
+                                    groupValue: _correctOptionIndex,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _correctOptionIndex = value!;
+                                      });
+                                    },
+                                  ),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _optionControllers[index],
+                                      decoration: InputDecoration(
+                                        labelText: 'Option ${index + 1}',
+                                        border: const OutlineInputBorder(),
+                                        filled: true,
+                                        fillColor:
+                                            Colors.white.withOpacity(0.85),
+                                      ),
+                                      style:
+                                          Theme.of(context).textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton.icon(
+                              onPressed: _addQuestion,
+                              icon: const Icon(Icons.add),
+                              label: const Text('Add Question'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryBlueDark,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                }),
-              ],
-              const SizedBox(height: 24),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _error!,
-                    style: const TextStyle(color: AppTheme.errorRed),
                   ),
                 ),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveQuiz,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Create Quiz'),
-              ),
-            ],
+                if (_questions.isNotEmpty) ...[
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    margin: const EdgeInsets.only(bottom: 24),
+                    color: Colors.transparent,
+                    child: Container(
+                      decoration: glassBlueCardDecoration,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Added Questions',
+                                style:
+                                    Theme.of(context).textTheme.displayMedium),
+                            const SizedBox(height: 16),
+                            ...List.generate(_questions.length, (index) {
+                              final question = _questions[index];
+                              String correctAnswer = '';
+                              try {
+                                final options = List<Map<String, dynamic>>.from(
+                                    question['options']);
+                                final correct = options.firstWhere(
+                                  (opt) => opt['is_correct'] == true,
+                                  orElse: () => <String, dynamic>{},
+                                );
+                                if (correct['text'] != null) {
+                                  correctAnswer = correct['text'].toString();
+                                } else {
+                                  correctAnswer = 'N/A';
+                                }
+                              } catch (e) {
+                                correctAnswer = 'N/A';
+                              }
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                color: Colors.transparent,
+                                child: Container(
+                                  decoration: glassBlueCardDecoration,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                question['question'],
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyLarge
+                                                    ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete),
+                                              onPressed: () =>
+                                                  _removeQuestion(index),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Correct answer: $correctAnswer',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                  color: AppTheme.primaryBlue,
+                                                  fontWeight: FontWeight.w500),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: AppTheme.errorRed),
+                    ),
+                  ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _saveQuiz,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlueDark,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator()
+                        : const Text('Create Quiz',
+                            style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

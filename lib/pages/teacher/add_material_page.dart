@@ -257,13 +257,12 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
                           ),
                           const Spacer(),
                           if (_selectedFiles.isNotEmpty)
-                            TextButton.icon(
+                            TextButton(
                               onPressed: _isUploading ? null : _pickFiles,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Add More'),
                               style: TextButton.styleFrom(
                                 foregroundColor: AppTheme.primaryBlue,
                               ),
+                              child: const Text('Add More'),
                             ),
                         ],
                       ),
@@ -294,11 +293,9 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    ElevatedButton.icon(
+                                    ElevatedButton(
                                       onPressed:
                                           _isUploading ? null : _pickFiles,
-                                      icon: const Icon(Icons.attach_file),
-                                      label: const Text('Select Files'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.primaryBlue,
                                         padding: const EdgeInsets.symmetric(
@@ -306,6 +303,7 @@ class _AddMaterialPageState extends State<AddMaterialPage> {
                                           vertical: 12,
                                         ),
                                       ),
+                                      child: const Text('Select Files'),
                                     ),
                                   ],
                                 ),

@@ -321,14 +321,6 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen>
                                             color: _primaryColor,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Created ${_formatDate(category['created_at'])}',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   ),

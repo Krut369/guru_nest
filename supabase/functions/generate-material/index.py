@@ -6,7 +6,7 @@ import requests
 
 # API config
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 def generate_material(course_title: str, material_title: str, lesson_title: str) -> str:

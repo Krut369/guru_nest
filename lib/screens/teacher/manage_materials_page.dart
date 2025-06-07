@@ -590,196 +590,215 @@ class _ManageMaterialsPageState extends State<ManageMaterialsPage> {
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
-                          elevation: 2,
+                          elevation: 4,
+                          shadowColor: AppTheme.primaryBlue.withOpacity(0.2),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          color: Colors.transparent,
                           child: InkWell(
                             onTap: () => _viewMaterial(material['file_url']),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      return Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: _getMaterialColor(
-                                                  material['type']),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white,
+                                    AppTheme.primaryBlue.withOpacity(0.01),
+                                  ],
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        return Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: _getMaterialColor(
+                                                    material['type']),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Icon(
+                                                _getMaterialIcon(
+                                                    material['type']),
+                                                color: AppTheme.primaryBlue,
+                                                size: 24,
+                                              ),
                                             ),
-                                            child: Icon(
-                                              _getMaterialIcon(
-                                                  material['type']),
-                                              color: AppTheme.primaryBlue,
-                                              size: 24,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: Text(
-                                                        material['title'] ??
-                                                            'Untitled Material',
-                                                        style: const TextStyle(
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.bold,
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          material['title'] ??
+                                                              'Untitled Material',
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          maxLines: 1,
                                                         ),
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        maxLines: 1,
                                                       ),
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Icon(
-                                                      Icons.open_in_new,
-                                                      size: 16,
+                                                      const SizedBox(width: 4),
+                                                      Icon(
+                                                        Icons.open_in_new,
+                                                        size: 16,
+                                                        color: Colors
+                                                            .grey.shade600,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'Type: ${material['type']?.toUpperCase() ?? 'Unknown'}',
+                                                    style: TextStyle(
                                                       color:
                                                           Colors.grey.shade600,
+                                                      fontSize: 14,
                                                     ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  'Type: ${material['type']?.toUpperCase() ?? 'Unknown'}',
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade600,
-                                                    fontSize: 14,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    maxLines: 1,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                ),
-                                              ],
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            SizedBox(
+                                              width: 40,
+                                              child: PopupMenuButton<String>(
+                                                padding: EdgeInsets.zero,
+                                                icon:
+                                                    const Icon(Icons.more_vert),
+                                                itemBuilder: (context) => [
+                                                  const PopupMenuItem(
+                                                    value: 'view',
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.visibility,
+                                                            size: 20),
+                                                        SizedBox(width: 8),
+                                                        Text('View'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const PopupMenuItem(
+                                                    value: 'edit',
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.edit,
+                                                            size: 20),
+                                                        SizedBox(width: 8),
+                                                        Text('Edit'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.delete,
+                                                            size: 20),
+                                                        SizedBox(width: 8),
+                                                        Text('Delete'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                                onSelected: (value) {
+                                                  if (value == 'view') {
+                                                    _viewMaterial(
+                                                        material['file_url']);
+                                                  } else if (value == 'edit') {
+                                                    context.push(
+                                                      '/teacher/course/${widget.courseId}/edit-material/${material['id']}',
+                                                    );
+                                                  } else if (value ==
+                                                      'delete') {
+                                                    _showDeleteConfirmation(
+                                                      material['id'],
+                                                      material['title'] ??
+                                                          'Untitled Material',
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Divider(),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.book,
+                                          size: 16,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Course: ${course['title'] ?? 'Untitled Course'}',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14,
                                             ),
                                           ),
-                                          const SizedBox(width: 4),
-                                          SizedBox(
-                                            width: 40,
-                                            child: PopupMenuButton<String>(
-                                              padding: EdgeInsets.zero,
-                                              icon: const Icon(Icons.more_vert),
-                                              itemBuilder: (context) => [
-                                                const PopupMenuItem(
-                                                  value: 'view',
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Icon(Icons.visibility,
-                                                          size: 20),
-                                                      SizedBox(width: 8),
-                                                      Text('View'),
-                                                    ],
-                                                  ),
-                                                ),
-                                                const PopupMenuItem(
-                                                  value: 'edit',
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Icon(Icons.edit,
-                                                          size: 20),
-                                                      SizedBox(width: 8),
-                                                      Text('Edit'),
-                                                    ],
-                                                  ),
-                                                ),
-                                                const PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Icon(Icons.delete,
-                                                          size: 20),
-                                                      SizedBox(width: 8),
-                                                      Text('Delete'),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                              onSelected: (value) {
-                                                if (value == 'view') {
-                                                  _viewMaterial(
-                                                      material['file_url']);
-                                                } else if (value == 'edit') {
-                                                  context.push(
-                                                    '/teacher/course/${widget.courseId}/edit-material/${material['id']}',
-                                                  );
-                                                } else if (value == 'delete') {
-                                                  _showDeleteConfirmation(
-                                                    material['id'],
-                                                    material['title'] ??
-                                                        'Untitled Material',
-                                                  );
-                                                }
-                                              },
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.school,
+                                          size: 16,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Lesson: ${lesson['title'] ?? 'Untitled Lesson'}',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14,
                                             ),
                                           ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Divider(),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.book,
-                                        size: 16,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Course: ${course['title'] ?? 'Untitled Course'}',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 14,
-                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.school,
-                                        size: 16,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Lesson: ${lesson['title'] ?? 'Untitled Lesson'}',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

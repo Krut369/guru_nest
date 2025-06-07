@@ -6,7 +6,7 @@ import requests
 
 # API config
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 GROQ_MODEL = "llama2-70b-4096"  # Updated to use a valid Groq model
 
 def generate_mcq(course_title: str, quiz_title: str, description: str) -> list:

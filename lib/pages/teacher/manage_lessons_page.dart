@@ -827,38 +827,10 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
           ? null
           : FloatingActionButton.extended(
               onPressed: () async {
-                try {
-                  final highestOrder = _lessons.isEmpty
-                      ? 0
-                      : _lessons
-                          .map((lesson) => lesson['lesson_order'] as int)
-                          .reduce((a, b) => a > b ? a : b);
-
-                  final response = await supabase.Supabase.instance.client
-                      .from('lessons')
-                      .insert({
-                        'title': 'New Lesson',
-                        'content': 'Add your lesson content here',
-                        'course_id': _selectedCourseId,
-                        'lesson_order': highestOrder + 1,
-                      })
-                      .select()
-                      .single();
-
-                  if (mounted) {
-                    context.push(
-                      '/teacher/course/$_selectedCourseId/edit-lesson/${response['id']}',
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error creating new lesson: $e'),
-                        backgroundColor: AppTheme.errorRed,
-                      ),
-                    );
-                  }
+                final result = await context
+                    .push('/teacher/course/$_selectedCourseId/add-lesson');
+                if (result == true) {
+                  _loadLessons();
                 }
               },
               backgroundColor: AppTheme.primaryBlue,

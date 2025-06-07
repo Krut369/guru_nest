@@ -1,0 +1,29 @@
+{
+  "provider": "google_pay",
+  "data": {
+    "environment": "TEST",
+    "apiVersion": 2,
+    "apiVersionMinor": 0,
+    "allowedPaymentMethods": [
+      {
+        "type": "UPI",
+        "parameters": {
+          "pa": "pparth18122003-2@oksbi",
+          "pn": "Parth Prajapati",
+          "tr": "TXN1234567890",
+          "tn": "Payment for Flutter Course",
+          "am": "1.00",
+          "cu": "INR"
+        }
+      }
+    ],
+    "merchantInfo": {
+      "merchantName": "GuruNest Learning"
+    },
+    "transactionInfo": {
+      "totalPriceStatus": "FINAL",
+      "totalPrice": "1.00",
+      "currencyCode": "INR"
+    }
+  }
+}

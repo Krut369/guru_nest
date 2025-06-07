@@ -51,7 +51,7 @@ class _CourseDetailSectionState extends State<CourseDetailSection> {
       final user = json.decode(userJson);
       final userId = user['id'] as String;
 
-      final course = await _courseService.getCourse(widget.courseId);
+      final course = await _courseService.fetchCourseById(widget.courseId);
       final isEnrolled =
           await _enrollmentService.isEnrolled(userId, widget.courseId);
 
@@ -174,70 +174,193 @@ class _CourseDetailSectionState extends State<CourseDetailSection> {
       return const Center(child: Text('Course not found'));
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_course!.title),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_course!.imageUrl != null && _course!.imageUrl!.isNotEmpty)
-              Image.network(
-                _course!.imageUrl!,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 200,
-                    color: AppTheme.primaryBlue.withOpacity(0.1),
-                    child: const Icon(
-                      Icons.school,
-                      size: 48,
-                      color: AppTheme.primaryBlue,
-                    ),
-                  );
-                },
-              ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _course!.title,
-                    style: Theme.of(context).textTheme.headlineMedium,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_course!.imageUrl != null && _course!.imageUrl!.isNotEmpty)
+            Image.network(
+              _course!.imageUrl!,
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 200,
+                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                  child: const Icon(
+                    Icons.school,
+                    size: 48,
+                    color: AppTheme.primaryBlue,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _course!.description,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Price: \$${_course!.price.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isEnrolling
-                          ? null
-                          : (_isEnrolled
-                              ? _unenrollFromCourse
-                              : _enrollInCourse),
-                      child: _isEnrolling
-                          ? const CircularProgressIndicator()
-                          : Text(_isEnrolled ? 'Unenroll' : 'Enroll Now'),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          ],
-        ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _course!.title,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                // Teacher Information
+                if (_course!.teacher != null)
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppTheme.primaryBlue.withOpacity(0.1),
+                        backgroundImage: _course!.teacher!.avatarUrl != null
+                            ? NetworkImage(_course!.teacher!.avatarUrl!)
+                            : null,
+                        child: _course!.teacher!.avatarUrl == null
+                            ? Text(
+                                _course!.teacher!.fullName
+                                    .substring(0, 1)
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryBlue,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'By ${_course!.teacher!.fullName}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Text(
+                              _course!.teacher!.email,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 8),
+                Text(
+                  _course!.description,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 16),
+                // Course Statistics
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${_course!.enrollments} Students',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryBlue,
+                            ),
+                          ),
+                          const Text(
+                            'Enrolled',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                size: 16,
+                                color: Colors.amber,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _course!.rating.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Text(
+                            'Rating',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _course!.isPremium
+                                ? '\$${_course!.price.toStringAsFixed(2)}'
+                                : 'Free',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _course!.isPremium
+                                  ? AppTheme.primaryBlue
+                                  : Colors.green,
+                            ),
+                          ),
+                          const Text(
+                            'Price',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isEnrolling
+                        ? null
+                        : (_isEnrolled ? _unenrollFromCourse : _enrollInCourse),
+                    child: _isEnrolling
+                        ? const CircularProgressIndicator()
+                        : Text(_isEnrolled ? 'Unenroll' : 'Enroll Now'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,4 @@
-class Material {
+class LessonMaterial {
   final String id;
   final String lessonId;
   final String title;
@@ -6,7 +6,7 @@ class Material {
   final String fileUrl;
   final DateTime uploadedAt;
 
-  Material({
+  LessonMaterial({
     required this.id,
     required this.lessonId,
     required this.title,
@@ -15,8 +15,8 @@ class Material {
     required this.uploadedAt,
   });
 
-  factory Material.fromJson(Map<String, dynamic> json) {
-    return Material(
+  factory LessonMaterial.fromJson(Map<String, dynamic> json) {
+    return LessonMaterial(
       id: json['id'] as String,
       lessonId: json['lesson_id'] as String,
       title: json['title'] as String,

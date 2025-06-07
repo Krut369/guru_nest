@@ -6,9 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../../core/theme/app_theme.dart';
+import '../../models/teacher_dashboard_data.dart';
 import '../../models/user_model.dart';
 import '../../pages/teacher/manage_lessons_page.dart';
 import '../../services/auth_service.dart';
+import '../../services/teacher_dashboard_service.dart';
 import '../../widgets/teacher_drawer.dart';
 import 'quiz_management_screen.dart';
 
@@ -25,6 +27,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   bool _isLoading = true;
   String? _error;
   int _currentIndex = 0;
+  TeacherDashboardData? _dashboardData;
 
   @override
   void initState() {
@@ -40,9 +43,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         setState(() => _currentIndex = 1);
       } else if (location.contains('/teacher/students')) {
         setState(() => _currentIndex = 2);
-      } else if (location.contains('/teacher/analytics')) {
-        setState(() => _currentIndex = 3);
       } else if (location.contains('/teacher/chat')) {
+        setState(() => _currentIndex = 3);
+      } else if (location.contains('/teacher/analytics')) {
         setState(() => _currentIndex = 4);
       } else {
         setState(() => _currentIndex = 0);
@@ -58,8 +61,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         final userData = jsonDecode(userJson) as Map<String, dynamic>;
         setState(() {
           _currentUser = User.fromJson(userData);
-          _isLoading = false;
         });
+        await _loadDashboardData(prefs);
       } else {
         setState(() {
           _error = 'User not found';
@@ -68,7 +71,23 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       }
     } catch (e) {
       setState(() {
-        _error = 'Error loading user: ${e.toString()}';
+        _error = 'Error loading user: [31m${e.toString()}[0m';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadDashboardData(SharedPreferences prefs) async {
+    try {
+      final service = TeacherDashboardService(prefs);
+      final data = await service.getDashboardData();
+      setState(() {
+        _dashboardData = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error loading dashboard data: [31m${e.toString()}[0m';
         _isLoading = false;
       });
     }
@@ -93,21 +112,24 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 
   void _onDestinationSelected(int index) {
+    print(
+        'Teacher Dashboard: Navigation selected - index: $index'); // Debug print
     setState(() => _currentIndex = index);
     switch (index) {
       case 0:
+        print('Teacher Dashboard: Navigating to dashboard'); // Debug print
         context.go('/teacher/dashboard');
         break;
       case 1:
+        print('Teacher Dashboard: Navigating to courses'); // Debug print
         context.go('/teacher/courses');
         break;
       case 2:
+        print('Teacher Dashboard: Navigating to students'); // Debug print
         context.go('/teacher/students');
         break;
       case 3:
-        context.go('/teacher/analytics');
-        break;
-      case 4:
+        print('Teacher Dashboard: Navigating to chat'); // Debug print
         context.go('/teacher/chat');
         break;
     }
@@ -196,6 +218,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       );
     }
 
+    // Use real dashboard data
+    final dashboardData = _dashboardData;
+    final totalQuizzes = dashboardData?.totalQuizzes ?? 0;
+    final totalCategories = dashboardData?.totalCategories ?? 0;
+    final totalLessons = dashboardData?.courseStats
+            .fold<int>(0, (sum, c) => sum + c.totalQuizzes) ??
+        0;
+    final totalMaterials = dashboardData?.totalMaterials ?? 0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Teacher Dashboard'),
@@ -218,6 +249,38 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // SUMMARY CARD
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _StatSummary(
+                        icon: Icons.quiz,
+                        label: 'Quizzes',
+                        value: totalQuizzes),
+                    _StatSummary(
+                        icon: Icons.category,
+                        label: 'Categories',
+                        value: totalCategories),
+                    _StatSummary(
+                        icon: Icons.menu_book,
+                        label: 'Lessons',
+                        value: totalLessons),
+                    _StatSummary(
+                        icon: Icons.attach_file,
+                        label: 'Materials',
+                        value: totalMaterials),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             const Text(
               'Quick Actions',
               style: TextStyle(
@@ -287,76 +350,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   },
                 ),
                 _buildQuickActionButton(
-                  icon: Icons.attach_file,
-                  label: 'Add Material',
-                  onTap: () async {
-                    try {
-                      final courses = await supabase.Supabase.instance.client
-                          .from('courses')
-                          .select('id, title')
-                          .eq('teacher_id', _currentUser!.id)
-                          .order('created_at', ascending: false);
-
-                      if (context.mounted) {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Select Course'),
-                            content: courses.isEmpty
-                                ? const Text(
-                                    'You need to create a course first.')
-                                : SizedBox(
-                                    width: double.maxFinite,
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      itemCount: courses.length,
-                                      itemBuilder: (context, index) {
-                                        final course = courses[index];
-                                        return ListTile(
-                                          title: Text(course['title'] ??
-                                              'Untitled Course'),
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            if (context.mounted) {
-                                              context.push(
-                                                  '/teacher/course/${course['id']}/add-material');
-                                            }
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:
-                                Text('Error loading courses: ${e.toString()}'),
-                            backgroundColor: AppTheme.errorRed,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                ),
-                _buildQuickActionButton(
                   icon: Icons.category,
                   label: 'Manage Categories',
                   onTap: () => context.go('/teacher/categories'),
-                ),
-                _buildQuickActionButton(
-                  icon: Icons.analytics_outlined,
-                  label: 'Analytics',
-                  onTap: () => context.go('/teacher/analytics'),
                 ),
                 _buildQuickActionButton(
                   icon: Icons.attach_file,
@@ -420,6 +416,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     }
                   },
                 ),
+                _buildQuickActionButton(
+                  icon: Icons.chat_outlined,
+                  label: 'Chat',
+                  onTap: () {
+                    print(
+                        'Teacher Dashboard: Quick action chat button pressed'); // Debug print
+                    context.go('/teacher/chat');
+                  },
+                ),
               ],
             ),
           ],
@@ -445,17 +450,40 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             label: 'Students',
           ),
           NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Analytics',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.chat_outlined),
             selectedIcon: Icon(Icons.chat),
             label: 'Chat',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatSummary extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int value;
+  const _StatSummary(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 32, color: AppTheme.primaryBlue),
+        const SizedBox(height: 8),
+        Text(
+          value.toString(),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+      ],
     );
   }
 }

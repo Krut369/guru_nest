@@ -15,9 +15,9 @@ class QuizOption {
 
   factory QuizOption.fromJson(Map<String, dynamic> json) {
     return QuizOption(
-      id: json['id'],
-      questionId: json['question_id'],
-      optionText: json['option_text'],
+      id: json['id']?.toString() ?? '',
+      questionId: json['question_id']?.toString() ?? '',
+      optionText: json['option_text']?.toString() ?? '',
       isCorrect: json['is_correct'] ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])

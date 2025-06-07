@@ -1,16 +1,16 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/lesson_model.dart';
-import '../pages/chat/chat_detail_page.dart';
-import '../pages/chat/chat_list_page.dart';
 import '../pages/chat/new_chat_page.dart';
+import '../pages/profile/profile_page.dart';
 import '../pages/teacher/manage_enrollments_page.dart';
 import '../pages/teacher/manage_lessons_page.dart';
 import '../pages/teacher/manage_students_page.dart';
+import '../pages/teacher/teacher_chat_page.dart';
 import '../screens/teacher/add_category_screen.dart';
 import '../screens/teacher/add_course_screen.dart';
 import '../screens/teacher/add_lesson_screen.dart';
@@ -25,8 +25,6 @@ import '../views/chat/chat_page.dart';
 import '../views/course/course_detail_page.dart';
 import '../views/dashboard/dashboard_page.dart';
 import '../views/dashboard/sections/analytics_section.dart';
-import '../views/dashboard/sections/category_section.dart';
-import '../views/dashboard/sections/course_section.dart';
 import '../views/lesson/lesson_detail_page.dart';
 import '../views/quiz/quiz_page.dart';
 
@@ -94,23 +92,13 @@ final router = GoRouter(
     GoRoute(
       path: '/dashboard',
       builder: (context, state) => const DashboardPage(),
-      routes: [
-        GoRoute(
-          path: 'courses',
-          builder: (context, state) {
-            final category = state.uri.queryParameters['category'];
-            return CourseSection(initialCategory: category);
-          },
-        ),
-        GoRoute(
-          path: 'categories',
-          builder: (context, state) => const CategorySection(),
-        ),
-        GoRoute(
-          path: 'analytics',
-          builder: (context, state) => const AnalyticsSection(),
-        ),
-      ],
+    ),
+    GoRoute(
+      path: '/dashboard/courses',
+      builder: (context, state) {
+        final categoryName = state.uri.queryParameters['categoryName'];
+        return DashboardPage(selectedCategory: categoryName);
+      },
     ),
     GoRoute(
       path: '/teacher',
@@ -130,7 +118,7 @@ final router = GoRouter(
         ),
         GoRoute(
           path: 'chat',
-          builder: (context, state) => const ChatListPage(),
+          builder: (context, state) => const TeacherChatPage(),
         ),
         GoRoute(
           path: 'chat/new',
@@ -138,7 +126,7 @@ final router = GoRouter(
         ),
         GoRoute(
           path: 'chat/:id',
-          builder: (context, state) => ChatDetailPage(
+          builder: (context, state) => ChatPage(
             conversationId: state.pathParameters['id']!,
           ),
         ),
@@ -153,6 +141,10 @@ final router = GoRouter(
         GoRoute(
           path: 'help',
           builder: (context, state) => const TeacherDashboard(),
+        ),
+        GoRoute(
+          path: 'profile',
+          builder: (context, state) => const ProfilePage(),
         ),
         GoRoute(
           path: 'create-course',
@@ -220,7 +212,7 @@ final router = GoRouter(
       builder: (context, state) {
         final conversationId = state.pathParameters['conversationId']!;
         if (conversationId == 'new') {
-          return const ChatListPage();
+          return const TeacherChatPage();
         }
         return ChatPage(
           conversationId: conversationId,
@@ -229,7 +221,7 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/course/:courseId',
-      builder: (context, state) => CourseDetailPage(
+      builder: (context, state) => CourseDetailScreen(
         courseId: state.pathParameters['courseId']!,
       ),
     ),

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 
 class CategorySection extends StatefulWidget {
-  const CategorySection({super.key});
+  final Function(String)? onCategorySelected;
+
+  const CategorySection({
+    super.key,
+    this.onCategorySelected,
+  });
 
   @override
   State<CategorySection> createState() => _CategorySectionState();
@@ -15,8 +19,6 @@ class _CategorySectionState extends State<CategorySection> {
   List<Map<String, dynamic>> _categories = [];
   bool _isLoading = true;
   String? _error;
-  final _formKey = GlobalKey<FormState>();
-  final _categoryController = TextEditingController();
 
   @override
   void initState() {
@@ -26,7 +28,6 @@ class _CategorySectionState extends State<CategorySection> {
 
   @override
   void dispose() {
-    _categoryController.dispose();
     super.dispose();
   }
 
@@ -98,159 +99,89 @@ class _CategorySectionState extends State<CategorySection> {
     }
   }
 
-  void _showAddCategoryDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Category'),
-        content: Form(
-          key: _formKey,
-          child: TextFormField(
-            controller: _categoryController,
-            decoration: const InputDecoration(
-              labelText: 'Category Name',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter a category name';
-              }
-              if (_categories.any(
-                  (cat) => cat['name'].toLowerCase() == value.toLowerCase())) {
-                return 'This category already exists';
-              }
-              return null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                try {
-                  // Add the new category to the database
-                  await Supabase.instance.client.from('categories').insert({
-                    'name': _categoryController.text.trim(),
-                  });
-
-                  if (mounted) {
-                    Navigator.pop(context);
-                    _categoryController.clear();
-                    _fetchCategories();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error adding category: ${e.toString()}'),
-                        backgroundColor: AppTheme.errorRed,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categories'),
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _error!,
+              style: const TextStyle(color: AppTheme.errorRed),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchCategories,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(AppTheme.defaultPadding),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1.0,
+        crossAxisSpacing: AppTheme.defaultSpacing,
+        mainAxisSpacing: AppTheme.defaultSpacing,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: AppTheme.errorRed),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchCategories,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+      itemCount: _categories.length,
+      itemBuilder: (context, index) {
+        final category = _categories[index];
+        return Card(
+          child: InkWell(
+            onTap: () {
+              if (widget.onCategorySelected != null) {
+                widget.onCategorySelected!(category['name'] as String);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.defaultPadding),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: (category['color'] as Color).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      category['icon'] as IconData,
+                      color: category['color'] as Color,
+                      size: 32,
+                    ),
                   ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(AppTheme.defaultPadding),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.0,
-                    crossAxisSpacing: AppTheme.defaultSpacing,
-                    mainAxisSpacing: AppTheme.defaultSpacing,
+                  const SizedBox(height: AppTheme.smallSpacing),
+                  Text(
+                    category['name'] as String,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
-                  itemCount: _categories.length,
-                  itemBuilder: (context, index) {
-                    final category = _categories[index];
-                    return Card(
-                      child: InkWell(
-                        onTap: () {
-                          context.go(
-                              '/dashboard/courses?category=${category['name']}');
-                        },
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.all(AppTheme.defaultPadding),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: (category['color'] as Color)
-                                      .withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  category['icon'] as IconData,
-                                  color: category['color'] as Color,
-                                  size: 32,
-                                ),
-                              ),
-                              const SizedBox(height: AppTheme.smallSpacing),
-                              Text(
-                                category['name'] as String,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${category['count']} Courses',
-                                style: const TextStyle(
-                                  color: AppTheme.textGrey,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddCategoryDialog,
-        backgroundColor: AppTheme.primaryBlue,
-        child: const Icon(Icons.add),
-      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${category['count']} Courses',
+                    style: const TextStyle(
+                      color: AppTheme.textGrey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

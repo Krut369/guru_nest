@@ -70,6 +70,14 @@ class TeacherDashboardService {
           .count()
           .then((response) => response.count ?? 0);
 
+      // Get total categories created by this teacher
+      final categoriesCount = await _supabase
+          .from('categories')
+          .select('id')
+          .eq('teacher_id', userId)
+          .count()
+          .then((response) => response.count ?? 0);
+
       // Get recent activities (combine enrollments, quiz results, and course progress)
       final recentEnrollments = await _supabase
           .from('enrollments')
@@ -135,18 +143,29 @@ class TeacherDashboardService {
         // Calculate average score from all quiz results in all quizzes
         final allQuizScores = (course['quizzes'] as List).expand((quiz) {
           return (quiz['quiz_results'] as List)
-              .map((result) => result['score'] as double);
+              .map((result) => (result['score'] as num?)?.toDouble() ?? 0.0);
         }).toList();
 
         final averageScore = allQuizScores.isEmpty
             ? 0.0
             : allQuizScores.reduce((a, b) => a + b) / allQuizScores.length;
 
+        final enrolledStudentsRaw = course['enrollments']?[0]?['count'];
+        final totalQuizzesRaw = course['lessons']?[0]?['count'];
+
         return CourseStats(
           courseId: course['id'],
           courseName: course['title'],
-          enrolledStudents: course['enrollments'][0]['count'] as int,
-          totalQuizzes: (course['lessons'][0]['count'] as int),
+          enrolledStudents: (enrolledStudentsRaw is int)
+              ? enrolledStudentsRaw
+              : (enrolledStudentsRaw is double)
+                  ? enrolledStudentsRaw.toInt()
+                  : int.tryParse(enrolledStudentsRaw?.toString() ?? '0') ?? 0,
+          totalQuizzes: (totalQuizzesRaw is int)
+              ? totalQuizzesRaw
+              : (totalQuizzesRaw is double)
+                  ? totalQuizzesRaw.toInt()
+                  : int.tryParse(totalQuizzesRaw?.toString() ?? '0') ?? 0,
           averageScore: averageScore,
         );
       }).toList();
@@ -156,6 +175,7 @@ class TeacherDashboardService {
         totalCourses: coursesCount,
         totalQuizzes: quizzesCount,
         totalMaterials: materialsCount,
+        totalCategories: categoriesCount,
         recentActivities:
             activities.take(5).toList(), // Keep only the 5 most recent
         courseStats: courseStats,

@@ -5,6 +5,8 @@ import 'package:path/path.dart' as path;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/course_include_model.dart';
+import '../models/course_learning_model.dart';
 import '../models/course_model.dart';
 import '../models/lesson_model.dart';
 import '../models/material_model.dart';
@@ -23,11 +25,16 @@ class CourseService {
     try {
       final response = await _supabase.from('courses').select('''
         *,
-        users!teacher_id (
+        teacher:users!teacher_id (
           id,
           full_name,
-          email
-        )
+          email,
+          avatar_url,
+          role,
+          created_at
+        ),
+        enrollments!course_id (count),
+        rating
       ''').order('created_at', ascending: false);
 
       return (response as List).map((json) => Course.fromJson(json)).toList();
@@ -42,11 +49,16 @@ class CourseService {
     try {
       final response = await _supabase.from('courses').select('''
             *,
-            users!teacher_id (
+            teacher:users!teacher_id (
               id,
               full_name,
-              email
+              email,
+              avatar_url,
+              role,
+              created_at
             ),
+            enrollments!course_id (count),
+            rating,
             lessons (
               *,
               materials (
@@ -57,6 +69,8 @@ class CourseService {
 
       // Log the response for debugging
       print('Course response: $response');
+      print('Teacher data in response: ${response['teacher']}');
+      print('Teacher ID: ${response['teacher_id']}');
 
       // Check each required field and collect missing ones
       final missingFields = <String>[];
@@ -94,6 +108,22 @@ class CourseService {
     }
   }
 
+  // Get lesson count for a course
+  Future<int> getLessonCount(String courseId) async {
+    try {
+      final response = await _supabase
+          .from('lessons')
+          .select('id')
+          .eq('course_id', courseId)
+          .count();
+
+      return response.count ?? 0;
+    } catch (e) {
+      print('Error fetching lesson count: $e');
+      return 0;
+    }
+  }
+
   // Fetch a single lesson by ID
   Future<Lesson> fetchLessonById(String lessonId) async {
     try {
@@ -112,7 +142,7 @@ class CourseService {
   }
 
   // Fetch materials for a lesson
-  Future<List<Material>> fetchMaterialsForLesson(String lessonId) async {
+  Future<List<LessonMaterial>> fetchMaterialsForLesson(String lessonId) async {
     try {
       final response = await _supabase
           .from('materials')
@@ -121,7 +151,7 @@ class CourseService {
           .order('uploaded_at'); // Assuming order by upload time
 
       // Note: 'Material' might conflict with Flutter's Material. Consider renaming model.
-      return response.map((json) => Material.fromJson(json)).toList();
+      return response.map((json) => LessonMaterial.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching materials: $e');
       rethrow;
@@ -144,6 +174,26 @@ class CourseService {
         return null; // No quiz found for this course
       } else {
         print('Error fetching quiz by course ID: $e');
+        rethrow;
+      }
+    }
+  }
+
+  Future<Quiz?> fetchQuizByLessonId(String lessonId) async {
+    try {
+      final response = await _supabase
+          .from('quizzes')
+          .select('*')
+          .eq('lesson_id', lessonId)
+          .single();
+      return Quiz.fromJson(response);
+    } catch (e) {
+      // Handle case where no quiz is found gracefully
+      if (e is PostgrestException && e.code == 'PGRST116') {
+        print('No quiz found for lesson ID $lessonId');
+        return null; // No quiz found for this lesson
+      } else {
+        print('Error fetching quiz by lesson ID: $e');
         rethrow;
       }
     }
@@ -189,12 +239,16 @@ class CourseService {
       final quizResponse =
           await _supabase.from('quizzes').select('*').eq('id', quizId).single();
 
+      print('Quiz response: $quizResponse');
+
       // Then fetch questions for this quiz
       final questionsResponse = await _supabase
           .from('quiz_questions')
           .select('*')
           .eq('quiz_id', quizId)
           .order('id', ascending: true);
+
+      print('Questions response: $questionsResponse');
 
       // For each question, fetch its options
       final questionsWithOptions = await Future.wait(
@@ -205,6 +259,8 @@ class CourseService {
               .eq('question_id', question['id'])
               .order('id', ascending: true);
 
+          print('Options for question ${question['id']}: $optionsResponse');
+
           return {
             ...Map<String, dynamic>.from(question),
             'quiz_options': optionsResponse,
@@ -212,10 +268,15 @@ class CourseService {
         }),
       );
 
-      return {
-        ...Map<String, dynamic>.from(quizResponse),
+      final result = {
+        'quiz': quizResponse,
         'quiz_questions': questionsWithOptions,
       };
+
+      print('Final result structure: ${result.keys}');
+      print('Number of questions: ${questionsWithOptions.length}');
+
+      return result;
     } catch (e) {
       print('Error fetching quiz with questions and options: $e');
       rethrow;
@@ -523,8 +584,13 @@ class CourseService {
             teacher:users!teacher_id (
               id,
               full_name,
-              email
+              email,
+              avatar_url,
+              role,
+              created_at
             ),
+            enrollments!course_id (count),
+            rating,
             category:categories (
               id,
               name
@@ -697,6 +763,94 @@ class CourseService {
     } catch (e) {
       print('Error uploading file: $e');
       rethrow;
+    }
+  }
+
+  // Create a new lesson
+  Future<void> createLesson({
+    required String courseId,
+    required String title,
+    required String content,
+    required int lessonOrder,
+    String? lessonId,
+  }) async {
+    try {
+      final id = lessonId ?? _uuid.v4();
+      final lessonData = {
+        'id': id,
+        'course_id': courseId,
+        'title': title,
+        'content': content,
+        'lesson_order': lessonOrder,
+      };
+      await _supabase.from('lessons').insert(lessonData);
+    } catch (e) {
+      print('Error creating lesson: $e');
+      rethrow;
+    }
+  }
+
+  // Update an existing lesson
+  Future<void> updateLesson({
+    required String lessonId,
+    required String courseId,
+    required String title,
+    required String content,
+    required int lessonOrder,
+  }) async {
+    try {
+      final lessonData = {
+        'course_id': courseId,
+        'title': title,
+        'content': content,
+        'lesson_order': lessonOrder,
+      };
+      await _supabase.from('lessons').update(lessonData).eq('id', lessonId);
+    } catch (e) {
+      print('Error updating lesson: $e');
+      rethrow;
+    }
+  }
+
+  // Delete a lesson
+  Future<void> deleteLesson(String lessonId) async {
+    try {
+      await _supabase.from('lessons').delete().eq('id', lessonId);
+    } catch (e) {
+      print('Error deleting lesson: $e');
+      rethrow;
+    }
+  }
+
+  // Fetch course includes
+  Future<List<CourseInclude>> fetchCourseIncludes(String courseId) async {
+    try {
+      final response = await _supabase
+          .from('course_includes')
+          .select()
+          .eq('course_id', courseId)
+          .order('id');
+
+      return response.map((json) => CourseInclude.fromJson(json)).toList();
+    } catch (e) {
+      print('Error fetching course includes: $e');
+      return [];
+    }
+  }
+
+  // Fetch course learnings
+  Future<List<CourseLearning>> fetchCourseLearnings(String courseId) async {
+    try {
+      final response = await _supabase
+          .from('course_learnings')
+          .select()
+          .eq('course_id', courseId)
+          .order('id');
+
+      return response.map((json) => CourseLearning.fromJson(json)).toList();
+    } catch (e) {
+      print('Error fetching course learnings: $e');
+      return [];
     }
   }
 }

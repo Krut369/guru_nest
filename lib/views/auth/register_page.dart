@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -74,11 +74,16 @@ class _RegisterPageState extends State<RegisterPage>
           email: _emailController.text.trim(),
           password: _passwordController.text,
           fullName: _nameController.text.trim(),
-          role: UserRole.student,
+          role: UserRole.student, // Force student role
         );
 
         if (user != null && mounted) {
-          context.go('/dashboard');
+          // On success, go to login page
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const LoginPage(),
+            ),
+          );
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -91,9 +96,13 @@ class _RegisterPageState extends State<RegisterPage>
         }
       } catch (e) {
         if (mounted) {
+          String errorMessage = e.toString();
+          if (errorMessage.contains('duplicate key')) {
+            errorMessage = 'Email already exists.';
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${e.toString()}'),
+              content: Text('Error: $errorMessage'),
               backgroundColor: AppTheme.errorRed,
             ),
           );
@@ -313,30 +322,23 @@ class _RegisterPageState extends State<RegisterPage>
                           ),
                           const SizedBox(height: AppTheme.defaultSpacing),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _socialLoginButton(
-                                  '', Icons.g_mobiledata_rounded),
-                              _socialLoginButton('', Icons.facebook),
-                              _socialLoginButton('', Icons.apple),
-                            ],
-                          ),
-                          const SizedBox(height: AppTheme.defaultSpacing),
-                          Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
                                 'Already have an account?',
                                 style: AppTheme.subheaderStyle,
                               ),
-                              TextButton(
+                              IconButton(
+                                icon: const Icon(Icons.login,
+                                    color: AppTheme.primaryBlue),
+                                tooltip: 'Login',
                                 onPressed: () {
-                                  context.go('/login');
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginPage(),
+                                    ),
+                                  );
                                 },
-                                child: const Text(
-                                  'Sign In',
-                                  style: AppTheme.buttonTextStyle,
-                                ),
                               ),
                             ],
                           ),

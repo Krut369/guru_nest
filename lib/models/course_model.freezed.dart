@@ -279,15 +279,16 @@ class _$CourseImpl implements _Course {
       {required this.id,
       required this.title,
       required this.description,
-      @JsonKey(name: 'image_url') this.imageUrl,
-      @JsonKey(name: 'category_id') this.categoryId,
-      @JsonKey(name: 'teacher_id') this.teacherId,
+      @JsonKey(name: 'image_url') required this.imageUrl,
+      @JsonKey(name: 'category_id') required this.categoryId,
+      @JsonKey(name: 'teacher_id') required this.teacherId,
       @JsonKey(name: 'is_premium') this.isPremium = false,
       @JsonKey(fromJson: _priceFromJson) this.price = 0.0,
       @JsonKey(fromJson: _ratingFromJson) this.rating = 0.0,
       @JsonKey(fromJson: _enrollmentsFromJson) this.enrollments = 0,
       @JsonKey(name: 'created_at') required this.createdAt,
-      @JsonKey(fromJson: _userFromJson, toJson: _userToJson) this.teacher});
+      @JsonKey(fromJson: _userFromJson, toJson: _userToJson)
+      required this.teacher});
 
   factory _$CourseImpl.fromJson(Map<String, dynamic> json) =>
       _$$CourseImplFromJson(json);
@@ -395,16 +396,16 @@ abstract class _Course implements Course {
       {required final String id,
       required final String title,
       required final String description,
-      @JsonKey(name: 'image_url') final String? imageUrl,
-      @JsonKey(name: 'category_id') final String? categoryId,
-      @JsonKey(name: 'teacher_id') final String? teacherId,
+      @JsonKey(name: 'image_url') required final String? imageUrl,
+      @JsonKey(name: 'category_id') required final String? categoryId,
+      @JsonKey(name: 'teacher_id') required final String? teacherId,
       @JsonKey(name: 'is_premium') final bool isPremium,
       @JsonKey(fromJson: _priceFromJson) final double price,
       @JsonKey(fromJson: _ratingFromJson) final double rating,
       @JsonKey(fromJson: _enrollmentsFromJson) final int enrollments,
       @JsonKey(name: 'created_at') required final DateTime createdAt,
       @JsonKey(fromJson: _userFromJson, toJson: _userToJson)
-      final User? teacher}) = _$CourseImpl;
+      required final User? teacher}) = _$CourseImpl;
 
   factory _Course.fromJson(Map<String, dynamic> json) = _$CourseImpl.fromJson;
 

@@ -54,7 +54,9 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
       if (mounted) {
         Navigator.pop(context, true);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print('Exception in updateQuiz: $e');
+      print('Stack trace: $stack');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -72,6 +74,21 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Glass blue gradient for cards (matches quiz management)
+    BoxDecoration glassBlueCardDecoration = BoxDecoration(
+      borderRadius: BorderRadius.circular(16),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.white,
+          AppTheme.primaryBlue.withOpacity(0.03),
+          AppTheme.primaryBlue.withOpacity(0.05),
+        ],
+        stops: const [0.0, 0.6, 1.0],
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Quiz'),
@@ -87,50 +104,67 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: InputDecoration(
-                        labelText: 'Quiz Title',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      color: Colors.transparent,
+                      child: Container(
+                        decoration: glassBlueCardDecoration,
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: _titleController,
+                              decoration: InputDecoration(
+                                labelText: 'Quiz Title',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter a title';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _descriptionController,
+                              decoration: InputDecoration(
+                                labelText: 'Description',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              maxLines: 3,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter a description';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: _updateQuiz,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryBlue,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Update Quiz'),
+                            ),
+                          ],
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a title';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      maxLines: 3,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a description';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _updateQuiz,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Update Quiz'),
                     ),
                   ],
                 ),

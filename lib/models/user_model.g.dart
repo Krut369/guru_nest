@@ -14,6 +14,7 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
       avatarUrl: json['avatar_url'] as String?,
       role: $enumDecode(_$UserRoleEnumMap, json['role']),
       createdAt: DateTime.parse(json['created_at'] as String),
+      bio: json['bio'] as String?,
     );
 
 Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
@@ -25,6 +26,7 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'avatar_url': instance.avatarUrl,
       'role': _$UserRoleEnumMap[instance.role]!,
       'created_at': instance.createdAt.toIso8601String(),
+      'bio': instance.bio,
     };
 
 const _$UserRoleEnumMap = {

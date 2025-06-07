@@ -9,7 +9,12 @@ import '../../../models/enrollment_model.dart';
 import '../../../services/enrollment_service.dart';
 
 class MyCoursesSection extends StatefulWidget {
-  const MyCoursesSection({super.key});
+  final VoidCallback? onBrowseCourses;
+
+  const MyCoursesSection({
+    super.key,
+    this.onBrowseCourses,
+  });
 
   @override
   State<MyCoursesSection> createState() => _MyCoursesSectionState();
@@ -64,144 +69,140 @@ class _MyCoursesSectionState extends State<MyCoursesSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Courses'),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: AppTheme.errorRed),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadEnrollments,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _enrollments.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'You haven\'t enrolled in any courses yet',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppTheme.textGrey,
-                            ),
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _error!,
+              style: const TextStyle(color: AppTheme.errorRed),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadEnrollments,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_enrollments.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'You haven\'t enrolled in any courses yet',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textGrey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                if (widget.onBrowseCourses != null) {
+                  widget.onBrowseCourses!();
+                }
+              },
+              child: const Text('Browse Courses'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadEnrollments,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(AppTheme.defaultPadding),
+        itemCount: _enrollments.length,
+        itemBuilder: (context, index) {
+          final enrollment = _enrollments[index];
+          final course = enrollment.course;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: InkWell(
+              onTap: () {
+                context.push('/course/${course.id}');
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (course.imageUrl != null && course.imageUrl!.isNotEmpty)
+                    Image.network(
+                      course.imageUrl!,
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          color: AppTheme.primaryBlue.withOpacity(0.1),
+                          child: const Icon(
+                            Icons.school,
+                            size: 48,
+                            color: AppTheme.primaryBlue,
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              context.push('/dashboard/courses');
-                            },
-                            child: const Text('Browse Courses'),
+                        );
+                      },
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          course.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadEnrollments,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(AppTheme.defaultPadding),
-                        itemCount: _enrollments.length,
-                        itemBuilder: (context, index) {
-                          final enrollment = _enrollments[index];
-                          final course = enrollment.course;
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            child: InkWell(
-                              onTap: () {
-                                context.push('/dashboard/courses/${course.id}');
-                              },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (course.imageUrl != null &&
-                                      course.imageUrl!.isNotEmpty)
-                                    Image.network(
-                                      course.imageUrl!,
-                                      height: 200,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Container(
-                                          height: 200,
-                                          color: AppTheme.primaryBlue
-                                              .withOpacity(0.1),
-                                          child: const Icon(
-                                            Icons.school,
-                                            size: 48,
-                                            color: AppTheme.primaryBlue,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          course.title,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          course.description,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: AppTheme.textGrey,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              'Enrolled on ${_formatDate(enrollment.enrolledAt)}',
-                                              style: const TextStyle(
-                                                color: AppTheme.textGrey,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                context.push(
-                                                    '/dashboard/courses/${course.id}');
-                                              },
-                                              child: const Text(
-                                                  'Continue Learning'),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          course.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppTheme.textGrey,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Enrolled on ${_formatDate(enrollment.enrolledAt)}',
+                              style: const TextStyle(
+                                color: AppTheme.textGrey,
+                                fontSize: 8,
                               ),
                             ),
-                          );
-                        },
-                      ),
+                            TextButton(
+                              onPressed: () {
+                                context.push('/course/${course.id}');
+                              },
+                              child: const Text('Continue Learning'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

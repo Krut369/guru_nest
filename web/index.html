@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Base href for proper routing in Flutter web apps -->
+  <base href="$FLUTTER_BASE_HREF">
+  <script>
+    // Fallback for local development
+    if (window.location.pathname === "/") {
+      document.querySelector('base').setAttribute('href', '/');
+    }
+  </script>
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Guru Nest - Learn, Grow, Succeed.">
+
+  <!-- iOS and Android meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Guru Nest">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <!-- Title and Manifest -->
+  <title>Guru Nest</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Flutter initialization JS -->
+  <script>
+    const serviceWorkerVersion = '{{flutter_service_worker_version}}';
+  </script>
+  <script src="flutter.js" defer></script>
+
+  <!-- Optional styling for loading screen -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans', sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    #loading {
+      text-align: center;
+      padding-top: 100px;
+      font-size: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Splash screen -->
+  <div id="loading">Loading Guru Nest...</div>
+
+  <script>
+    // Initialize Flutter configuration
+    window._flutter = window._flutter || {};
+    window._flutter.buildConfig = {
+      engineRevision: "3.27.4",
+      useLocalCanvasKit: true,
+      renderer: "canvaskit",
+      builds: [
+        {
+          renderer: "canvaskit",
+          compileTarget: "dart2js"
+        }
+      ]
+    };
+
+    window.addEventListener('load', function(ev) {
+      _flutter.loader.load({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            document.getElementById('loading')?.remove();
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

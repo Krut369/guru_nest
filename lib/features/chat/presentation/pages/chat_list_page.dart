@@ -21,7 +21,6 @@ class _ChatListPageState extends State<ChatListPage> {
   static const String _lastRefreshKey = 'chat_list_last_refresh';
   static const String _cachedConversationsKey = 'cached_conversations';
   static const String _userIdKey = 'user_id';
-  static const String _userTokenKey = 'user_token';
 
   @override
   void initState() {

@@ -61,18 +61,12 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
         _error = '';
       });
 
-      print('Fetching all courses...');
-
-      // Direct Supabase query without authentication check
       final response = await supabase.Supabase.instance.client
           .from('courses')
           .select()
           .order('created_at', ascending: false);
 
-      print('Raw response from Supabase: $response');
-
       if ((response as List).isEmpty) {
-        print('No courses found');
         setState(() {
           _courses = [];
           _isLoading = false;
@@ -81,11 +75,9 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
       }
 
       final courses = (response as List).map((json) {
-        print('Processing course: $json');
-        // Handle missing or incomplete teacher data
         if (json['teacher'] != null) {
           if (json['teacher']['role'] == null) {
-            json['teacher']['role'] = 'teacher'; // Default to teacher role
+            json['teacher']['role'] = 'teacher';
           }
           if (json['teacher']['created_at'] == null) {
             json['teacher']['created_at'] = DateTime.now().toIso8601String();
@@ -94,21 +86,12 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
         return Course.fromJson(json);
       }).toList();
 
-      print('Processed courses: ${courses.length}');
-      if (courses.isNotEmpty) {
-        print('First course: ${courses.first.toJson()}');
-      } else {
-        print('No courses found after processing');
-      }
-
       setState(() {
         _courses = courses.map((course) => course.toJson()).toList();
         _isLoading = false;
       });
       _animationController.forward();
-    } catch (e, stackTrace) {
-      print('Error loading courses: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -374,8 +357,8 @@ class _CourseManagementScreenState extends State<CourseManagementScreen>
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.grey[600],
-                                              ),                                            ),
-
+                                              ),
+                                            ),
                                             const SizedBox(height: 8),
                                             Row(
                                               children: [

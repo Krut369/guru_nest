@@ -17,6 +17,7 @@ import '../../models/material_model.dart' as mat_model;
 import '../../models/quiz_model.dart';
 import '../../screens/material/material_viewer_screen.dart';
 import '../../services/course_service.dart';
+import '../../services/feedback_service.dart';
 import '../../services/lesson_progress_service.dart';
 
 class LessonDetailPage extends StatefulWidget {
@@ -184,6 +185,97 @@ class _LessonDetailPageState extends State<LessonDetailPage> {
     }
   }
 
+  Future<void> _showFeedbackDialog() async {
+    final feedbackService = FeedbackService();
+    final questions = await feedbackService.fetchQuestions();
+    final responses = List.generate(
+        questions.length,
+        (i) => {
+              'question_id': questions[i]['id'],
+              'rating': 0,
+              'answer': '',
+            });
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Lesson Feedback'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: questions.length,
+                  itemBuilder: (context, i) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(questions[i]['question_text']),
+                        Row(
+                          children: List.generate(5, (star) {
+                            return IconButton(
+                              icon: Icon(
+                                responses[i]['rating'] > star
+                                    ? Icons.star
+                                    : Icons.star_border,
+                                color: Colors.amber,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  responses[i]['rating'] = star + 1;
+                                });
+                              },
+                            );
+                          }),
+                        ),
+                        TextField(
+                          decoration: const InputDecoration(
+                            hintText: 'Optional comment',
+                          ),
+                          onChanged: (val) {
+                            responses[i]['answer'] = val;
+                          },
+                        ),
+                        const Divider(),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () async {
+                    if (responses.any((r) => r['rating'] == 0)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Please rate all questions!')),
+                      );
+                      return;
+                    }
+                    await feedbackService.submitFeedback(
+                      userId: _userId!,
+                      lessonId: widget.lessonId,
+                      responses: responses,
+                    );
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Thank you for your feedback!')),
+                    );
+                  },
+                  child: const Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _markAsCompleted() async {
     if (_userId == null) {
       if (mounted) {
@@ -224,6 +316,9 @@ class _LessonDetailPageState extends State<LessonDetailPage> {
         _isCompleted = true;
         _isLoading = false;
       });
+
+      // Show feedback dialog after marking as completed
+      await _showFeedbackDialog();
 
       // Show success message
       if (mounted) {
@@ -270,18 +365,18 @@ class _LessonDetailPageState extends State<LessonDetailPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 8),
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 8),
                 Expanded(
-                  child: Text('Error: ${e.toString()}'),
+                  child: Text('Error:  e.toString()}'),
                 ),
               ],
             ),
             backgroundColor: AppTheme.errorRed,
-            duration: const Duration(seconds: 4),
+            duration: Duration(seconds: 4),
           ),
         );
       }
